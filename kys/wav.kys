@@ -1,0 +1,125 @@
+meta:
+  id: wav_file
+  endian: le
+seq:
+  - id: riff_fourcc
+    contents: RIFF
+  - id: container_size
+    type: u4
+  - id: wave_body
+    type: wave_body
+    size: container_size
+types:
+  wave_body:
+    seq:
+      - id: wave_fourcc
+        contents: WAVE
+      - id: chunks
+        type: wave_chunk_entry
+        repeat: eos
+  wave_chunk_entry:
+    seq:
+      - id: chunk_id
+        type: u4
+        enum: chunk_types
+      - id: chunk_size
+        type: u4
+      - id: chunk_data
+        size: chunk_size
+        type:
+          switch-on: chunk_id
+          cases:
+            'chunk_types::fmt': fmt_body
+            'chunk_types::smpl': smpl_body
+            'chunk_types::data' : data_body
+            _: unkown_body
+      - id: padding
+        type: u1
+        if: needs_padding
+    instances:
+      needs_padding:
+        value: chunk_size % 2 == 1
+    enums:
+      chunk_types:
+        0x20746d66: fmt
+        0x6c706d73: smpl
+        0x61746164: data
+    types:
+      fmt_body:
+        seq:
+          - id: audio_format
+            type: u2
+          - id: channel_cnt
+            type: u2
+          - id: sample_rate
+            type: u4
+          - id: byte_rate
+            type: u4
+          - id: block_align
+            type: u2
+          - id: bits_per_sample
+            type: u2
+      smpl_body:
+        seq:
+          - id: manufactor
+            type: u4
+          - id: product
+            type: u4
+          - id: sample_period
+            type: u4
+          - id: midi_note
+            type: u4
+          - id: pitch
+            type: u4
+          - id: smpte_format
+            type: u4
+            enum: smpte_formats
+          - id: smpte_offset
+            type: u4
+          - id: sample_loop_cnt
+            type: u4
+          - id: sampler_data_size
+            type: u4
+          - id: loop_entries
+            type: loop_entry
+            repeat: expr
+            repeat-expr: sample_loop_cnt
+          - id: sampler_data
+            size: sampler_data_size
+        enums:
+          smpte_formats:
+            0: none
+            24: fps24
+            25: fps25
+            29: fps30_drop
+            30: fps_drop
+        types:
+          loop_entry:
+            seq:
+              - id: cue_id
+                type: u4
+              - id: loop_type
+                type: u4
+                enum: loop_types
+              - id: start
+                type: u4
+              - id: end
+                type: u4
+              - id: fraction
+                type: u4
+              - id: play_cnt
+                type: u4
+            enums:
+              loop_types:
+                0: forward
+                1: alternating
+                2: reverse
+      data_body:
+        seq:
+          - id: data
+            size-eos: true
+      unkown_body:
+        seq:
+          - id: data
+            size-eos: true
+  

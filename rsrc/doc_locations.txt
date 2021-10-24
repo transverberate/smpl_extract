@@ -1,0 +1,4 @@
+https://www.win.tue.nl/~aeb/linux/fs/akaifs/adisk4-c.txt
+http://mda.smartelectronix.com/akai/akaiinfo.htm#1
+https://lsnl.jp/~ohsaki/software/akaitools/S3000-format.html
+https://www.win.tue.nl/~aeb/linux/fs/akaifs/akaifs.html
