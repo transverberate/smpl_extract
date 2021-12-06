@@ -2,13 +2,32 @@ import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-from io import SEEK_SET, BufferedIOBase
-import math
-from typing import Callable, Dict, List
+from dataclasses import dataclass
+from io import  IOBase
+from typing import Container
+from typing import Dict
+from typing import Iterable
+from typing import List
+from construct.core import Adapter
+from construct.core import ExprAdapter
+from construct.core import Int16ul
+from construct.core import Int32ul
+from construct.core import Int8sl
+from construct.core import Int8ul
+from construct.core import Padding
+from construct.core import Struct
+from construct.core import Tell
+from construct.expr import this
 
-from data_types import AKAI_SAMPLE_DATA_OFFSET_S1000, AKAI_SAMPLE_WORDLENGTH, LoopDataConstruct, SampleHeaderConstruct, AkaiLoopType, MidiNote, SampleType
-from wav.data_types import SmpteFormat, WavFormatChunkStruct, WavLoopStruct, WavLoopType, WavSampleChunkStruct
-from data_reader import DataFileStream
+from .data_types import AKAI_SAMPLE_WORDLENGTH
+from .data_types import AkaiLoopType
+from .data_types import SampleType
+from .akai_string import AkaiPaddedString
+
+from midi import MidiNote
+from util.stream import StreamOffset
+from util.stream import SubStreamConstruct
+from util.constructs import EnumWrapper
 
 
 class LoopEntry:
@@ -25,28 +44,6 @@ class LoopEntry:
         self.loop_end = loop_end 
         self.loop_active_duration = loop_duration
         self.repeat_forever = repeat_forever
-
-    
-    @classmethod
-    def from_akai_loop_data(cls, loop_data: LoopDataConstruct):
-        loop_at = loop_data.loop_start
-        loop_length = loop_data.loop_length_coarse
-        
-        loop_duration = loop_data.loop_duration
-        repeat_forever = (loop_duration >= 9999)
-
-        loop_start = (loop_at - 1) - loop_length
-        if loop_start < 0:
-            loop_start = 0
-        loop_end = loop_at
-
-        result = cls(
-            loop_start,
-             loop_end, 
-             loop_duration, 
-             repeat_forever
-        )
-        return result
 
 
 class Sample:
@@ -66,7 +63,7 @@ class Sample:
             pitch_semi: int = 0,
             loop_type: AkaiLoopType = None,
             loop_entries: List[LoopEntry] = None,
-            get_reader_func: Callable[[BufferedIOBase], BufferedIOBase] = None
+            data_stream: IOBase = None
     ) -> None:
         self.name = name
         self.sample_type = sample_type
@@ -81,7 +78,7 @@ class Sample:
         self.pitch_semi = pitch_semi
         self.loop_type = loop_type or AkaiLoopType.LOOP_INACTIVE
         self.loop_entries = loop_entries or []
-        self.get_data_reader = get_reader_func or (lambda x: None)
+        self.data_stream = data_stream
 
 
     def get_info(self)->Dict[str, str]:
@@ -104,84 +101,138 @@ class Sample:
             result[f"{loop_id_str} start"] = str(loop.loop_start)
             result[f"{loop_id_str} end"] = str(loop.loop_end)
         return result
-    
-    def get_wave_smpl_header(self)->WavSampleChunkStruct:
-        loop_headers = []
-        if self.loop_type != AkaiLoopType.LOOP_INACTIVE:
-            for i, loop in enumerate(self.loop_entries):
-                play_cnt = 0
-                if not loop.repeat_forever:
-                    loop_active_duration = loop.loop_active_duration
-                    loop_duration = (loop.loop_end - loop.loop_start)/self.sample_rate
-                    play_cnt = round(loop_active_duration/loop_duration)
-                loop_headers.append(WavLoopStruct(
-                    cue_id=i,
-                    loop_type=WavLoopType.FORWARD,
-                    start_byte=loop.loop_start,
-                    end_byte=math.floor(loop.loop_end),
-                    fraction=0,
-                    play_cnt=play_cnt
-                ))
-        sample_period_nano = (10**9)/self.sample_rate
-        pitch_cents_normalized = 0 # TODO, implement formula
-        smpl_header = WavSampleChunkStruct(
-            manufacturer=0,
-            product=0,
-            sample_period=round(sample_period_nano),
-            midi_note=self.note_pitch,
-            pitch_fraction=pitch_cents_normalized,
-            smpte_format=SmpteFormat.NONE,
-            smpte_offset=0,
-            sample_loops=loop_headers,
-            sampler_data=b""
-        )
-        return smpl_header
-
-
-    @classmethod
-    def from_raw_stream(
-        cls,
-        partition_segment: BufferedIOBase,
-        get_file_stream: Callable[[BufferedIOBase], BufferedIOBase],
-    ):
-        header = SampleHeaderConstruct.parse_stream(partition_segment)
-
-        # parse loop entries
-        loop_entries = []
-        if header.loop_type != AkaiLoopType.LOOP_INACTIVE:
-            for loop_data in header.loop_data_table:
-                loop_duration = loop_data.loop_duration
-                if loop_duration > 0:
-                    loop_entries.append(LoopEntry.from_akai_loop_data(loop_data))
-
-        # function for data stream
-        def get_data_stream(
-                partition_segment_inner: BufferedIOBase
-        )->BufferedIOBase:
-
-            filesize = AKAI_SAMPLE_WORDLENGTH * header.samples_cnt
-            file_reader = DataFileStream(
-                get_file_stream(partition_segment_inner),
-                AKAI_SAMPLE_DATA_OFFSET_S1000,
-                filesize
-            )
-            return file_reader
-
-        result = cls(
-            header.name,
-            header.id,
-            header.sampling_rate,
-            AKAI_SAMPLE_WORDLENGTH,
-            header.samples_cnt,
-            header.play_start,
-            header.play_end,
-            header.note_pitch,
-            header.pitch_offset_cents,
-            header.pitch_offset_semi,
-            header.loop_type,
-            loop_entries,
-            get_data_stream
-        )
         
+
+LoopDataConstruct = Struct(
+    "loop_start" / Int32ul,
+    "loop_length_fine" / Int16ul,
+    "loop_length_coarse" / Int32ul,
+    "loop_duration" / Int16ul
+).compile()
+@dataclass
+class LoopDataContainer(Container):
+    loop_start:         int 
+    loop_length_fine:   int 
+    loop_length_coarse: int 
+    loop_duration:      int
+
+
+class LoopEntryAdapter(Adapter):
+    def _decode(self, obj: LoopDataContainer, context, path)->LoopEntry:
+        del context, path  # Unused
+
+        loop_data = obj
+        
+        loop_at = loop_data.loop_start
+        loop_length = loop_data.loop_length_coarse
+        
+        loop_duration = loop_data.loop_duration
+        repeat_forever = (loop_duration >= 9999)
+
+        loop_start = (loop_at - 1) - loop_length
+        if loop_start < 0:
+            loop_start = 0
+        loop_end = loop_at
+
+        result = LoopEntry(
+            loop_start,
+            loop_end, 
+            loop_duration, 
+            repeat_forever
+        )
         return result
+
+
+    def _encode(self, obj, context, path)->bytes:
+        raise NotImplementedError
+
+
+SampleHeaderConstruct = Struct(
+    "id" / EnumWrapper(Int8ul, SampleType),
+    Padding(1),
+    "note_pitch" / ExprAdapter(
+        Int8ul, 
+        lambda x, y: MidiNote.from_akai_byte(x),
+        lambda x, y: MidiNote.to_akai_byte(x)
+    ),
+    "name" / AkaiPaddedString(12),
+    Padding(4),
+    "loop_type" / EnumWrapper(Int8ul, AkaiLoopType),
+    "pitch_offset_cents" / ExprAdapter(
+        Int8sl, 
+        lambda x, y: round(x * 50/0x7F),
+        lambda x, y: round(x * 0x7F/50)
+    ),
+    "pitch_offset_semi" / ExprAdapter(
+        Int8sl, 
+        lambda x, y: round(x * 50/0x7F),
+        lambda x, y: round(x * 0x7F/50)
+    ),
+    Padding(4),
+    "samples_cnt" / Int32ul,
+    "play_start" / Int32ul,
+    "play_end" / Int32ul,
+    "loop_data_table" / LoopEntryAdapter(LoopDataConstruct)[8],
+    Padding(4),
+    "sampling_rate" / Int16ul,
+    "data_address" / Tell,
+    "data_stream" / SubStreamConstruct(
+        StreamOffset, 
+        size=(AKAI_SAMPLE_WORDLENGTH * this.samples_cnt), 
+        offset=this.data_address
+    )
+).compile()
+
+
+@dataclass
+class SampleHeaderContainer(Container):
+    id:                 SampleType
+    note_pitch:         MidiNote
+    name:               str 
+    loop_type:          AkaiLoopType
+    pitch_offset_cents: int
+    pitch_offset_semi:  int
+    samples_cnt:        int 
+    play_start:         int 
+    play_end:           int
+    loop_data_table:    Iterable[LoopEntry]
+    sampling_rate:      int
+    data_stream:        IOBase
+
+
+class SampleAdapter(Adapter):
+
+
+    def _decode(self, obj: SampleHeaderContainer, context, path)->Sample:
+        del context, path  # Unused
+
+        sample_header = obj
         
+        loop_entries = []
+        if sample_header.loop_type != AkaiLoopType.LOOP_INACTIVE:
+            for loop_entry in sample_header.loop_data_table:
+                loop_duration = loop_entry.loop_active_duration
+                if loop_duration > 0:
+                    loop_entries.append(loop_entry)
+
+        result = Sample(
+            sample_header.name,
+            sample_header.id,
+            sample_header.sampling_rate,
+            AKAI_SAMPLE_WORDLENGTH,
+            sample_header.samples_cnt,
+            sample_header.play_start,
+            sample_header.play_end,
+            sample_header.note_pitch,
+            sample_header.pitch_offset_cents,
+            sample_header.pitch_offset_semi,
+            sample_header.loop_type,
+            loop_entries,
+            sample_header.data_stream
+        )
+        return result
+
+
+    def _encode(self, obj, context, path)->bytes:
+        raise NotImplementedError
+

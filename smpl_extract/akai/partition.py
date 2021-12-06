@@ -1,15 +1,32 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-from math import floor, ceil
-from typing import Callable, Dict, List
-from io import BufferedIOBase, BufferedReader
+sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+from typing import Callable
+from typing import OrderedDict
+from construct.core import Bytes
+from construct.core import ConstructError
+from construct.core import Lazy
+from construct.core import Padding
+from construct.core import Struct
+from construct.core import Subconstruct
+from construct.core import Int16ul
+from construct.core import Computed
+from construct.core import Tell
+from construct.expr import this
 
-from .segments import SegmentAllocationTable, RequestedInvalidSector
-from .data_types import AKAI_SECTOR_SIZE, SegmentAllocationTableConstruct, PartitionHeaderConstruct, VolumeEntriesConstruct, InvalidCharacter, VolumeType
+from .data_types import AKAI_SAT_ENTRY_CNT
+from .data_types import AKAI_SECTOR_SIZE
+from .data_types import AKAI_VOLUME_ENTRY_CNT
+from .data_types import InvalidCharacter
+from .sat import SegmentAllocationTable
+from .sat import SegmentAllocationTableAdapter
 from .volume import Volume
-from .partition_reader import PartitionFileStream
-from .file_entry import FileEntry
+from .volume import VolumeEntryConstruct
+from .volume import VolumesAdapter
+from util.stream import StreamOffset
+from util.stream import SubStreamConstruct
+
 
 class InvalidPartition(Exception):
     pass
@@ -20,151 +37,95 @@ class Partition:
 
     def __init__(
             self,
-            physical_address: int,
-            size: int,
-            file_allocation_table: SegmentAllocationTable,
-            name: str = "",
-            load_volumes_func: Callable[['Partition'], Dict[str, Volume]] = None
+            f_sat: Callable[[], SegmentAllocationTable],
+            f_volumes: Callable[[], OrderedDict[str, Volume]],
+            name: str = ""
     ) -> None:
-        self.physical_address = physical_address
-        self.size = size
-        self.file_allocation_table = file_allocation_table
+        self._f_sat = f_sat
+        self._sat = None
+        self._f_volumes = f_volumes
+        self._volumes = None
         self.name = name
-        self.type = "AKAI Partition"
-        self._volumes = {}
-        self._volumes_loaded_flag = False
-        self._load_volumes_func = load_volumes_func or (lambda x: self._volumes)
+        self.type = "Partition"
 
-
-    def _load_volumes(self):
-        self._volumes = self._load_volumes_func(self)
-        self._volumes_loaded_flag = True
+    
+    @property
+    def sat(self):
+        if not self._sat:
+            self._sat = self._f_sat()
+        return self._sat
 
 
     @property
-    def volumes(self)->Dict[str, Volume]:
-        if not self._volumes_loaded_flag:
-            self._load_volumes()
+    def volumes(self):
+        if not self._volumes:
+            self._volumes = self._f_volumes()
         return self._volumes
 
-    
+
     @property
     def children(self):
         return self.volumes
 
 
-    def _get_segment_at_sector(
-            self, 
-            image_file: BufferedIOBase,
-            sector: int
-    )->BufferedIOBase:
+class PartitionConstructAdapter(Subconstruct):
+    def _parse(self, stream, context, path):
 
-        sector_map = self.file_allocation_table.get_path(sector)
-        if sector_map is None:
-            raise Exception(f"No Segment at sector {sector}")
-        
-        partition_segment = PartitionFileStream(
-            image_file, 
-            self.physical_address, 
-            sector_map
-        )
-        return partition_segment
-
-    
-    def _realize_volume_file(
-        self, 
-        image_file: BufferedIOBase,
-        file_entry: FileEntry
-    ):
-
-        # realize files in volume
-        file_sector = file_entry.sector
-        get_file_stream: Callable[[BufferedIOBase], BufferedIOBase] = \
-            lambda image_file_inner: self._get_segment_at_sector(image_file_inner, file_sector)
-
-        physical_address = self.physical_address + (AKAI_SECTOR_SIZE * file_sector)
         try:
-            file_entry._realize_file_callback(
-                get_file_stream(image_file),
-                physical_address,
-                get_file_stream
-            )
-        except (RequestedInvalidSector, InvalidCharacter):
-            file_entry.invalid = True
-    
-
-    @classmethod
-    def from_raw_stream(
-            cls, 
-            image_file: BufferedIOBase,
-            name: str = "",
-            total_filesize: int = None
-    )->'Partition':
-
-        physical_address = image_file.tell()
-        header = PartitionHeaderConstruct.parse_stream(image_file)
-        partition_size = header.size * AKAI_SECTOR_SIZE
-        if (
-                total_filesize is not None 
-                and physical_address + partition_size > total_filesize
-        ):
-            raise InvalidPartition
-
-        # Parse
-        try:
-            volume_entries_struct = VolumeEntriesConstruct.parse_stream(image_file)
+            partition_container = self.subcon._parse(stream, context, path)
         except InvalidCharacter:
-            raise InvalidPartition
+            raise ConstructError
 
-        # File Allocation Table FAT
-        fat_struct = SegmentAllocationTableConstruct.parse_stream(image_file)
-        fat = SegmentAllocationTable.from_raw_stream(fat_struct.fat)
+        if partition_container.header.size <= 0:
+            raise ConstructError
 
-        # add volumes func
-        def load_volumes_func(
-            image_file_inner: BufferedIOBase,
-            volume_entries,
-            partition_inner: Partition
-        ):
-            volumes = {}
-            for volume_entry_struct in volume_entries:
-                volume_type = volume_entry_struct.type
-                
-                if volume_type != VolumeType.INACTIVE:
-                    name            = volume_entry_struct.name
-                    volume_sector   = volume_entry_struct.start
+        partition_name = context["name"]
 
-                    volume_header_segment = partition._get_segment_at_sector(
-                        image_file, 
-                        volume_sector
-                    )
-
-                    volume = Volume.from_raw_stream(
-                        volume_header_segment,
-                        name,
-                        volume_sector,
-                        volume_type,
-                        lambda file_entry: partition_inner._realize_volume_file(
-                            image_file_inner,
-                            file_entry
-                        )
-                    )
-
-                    volumes[volume.name] = volume
-
-            return volumes
-
-        # init partition instance
-        partition = cls(
-            physical_address, 
-            partition_size, 
-            fat, 
-            name,
-            lambda partition_inner: load_volumes_func(
-                image_file,
-                volume_entries_struct.volume_entries,
-                partition_inner
-            )
+        partition = Partition(
+            partition_container.sat,
+            partition_container.volumes,
+            partition_name
         )
-
+        
         return partition
+
+
+    def _build(self, obj, stream, context, path):
+        raise NotImplementedError
+
+
+PartitionHeaderConstruct = Struct(
+    "start_address" / Tell,
+    "size" / Int16ul,
+    "total_size" / Computed(this.size * AKAI_SECTOR_SIZE),
+    Padding(200),
+    "partition_stream" / SubStreamConstruct(
+        StreamOffset, 
+        size=this.total_size, 
+        offset=this.start_address
+    )
+).compile()
+
+
+
+PartitionConstruct = PartitionConstructAdapter(
+    Struct(
+        "header" / PartitionHeaderConstruct,
+        "volume_entries" / VolumeEntryConstruct[AKAI_VOLUME_ENTRY_CNT],
+        "sat" / SegmentAllocationTableAdapter(
+            this.header.partition_stream,
+            Int16ul[AKAI_SAT_ENTRY_CNT]
+        ),  
+        "volumes" / Lazy(VolumesAdapter(
+            this.volume_entries,
+            this.sat,
+            Lazy(Bytes(
+            lambda this: this.header.total_size \
+                - PartitionHeaderConstruct.sizeof() \
+                - VolumeEntryConstruct[AKAI_VOLUME_ENTRY_CNT].sizeof() \
+                - Int16ul[AKAI_SAT_ENTRY_CNT].sizeof()
+            )),
+        ))
+    )
+).compile()
+

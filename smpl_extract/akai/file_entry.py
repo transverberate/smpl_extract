@@ -1,12 +1,34 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+from dataclasses import dataclass
+from io import SEEK_CUR
+from io import SEEK_END
+from io import SEEK_SET
 from typing import Callable
+from typing import Iterable
+from typing import List
+from typing import Union
+from construct.core import Computed
+from construct.core import ConstructError
+from construct.core import Lazy
+from construct.core import Struct
+from construct.core import Padding
+from construct.core import Int8ul
+from construct.core import Int16ul
+from construct.core import Int24ul
+from construct.core import Subconstruct
+from construct.lib.containers import Container
+from construct.expr import this
 
-from io import BufferedIOBase
-from .sample import Sample
-from .segments import RequestedInvalidSector
-from .data_types import FileType, InvalidCharacter
+from .akai_string import AkaiPaddedString
+from .data_types import FILE_TABLE_END_FLAG
+from .data_types import FileType
+from .file import FileAdapter
+from .file import FileConstruct
+from .sat import RequestedInvalidSector
+from smpl_extract.util.stream import StreamWrapper
+from smpl_extract.util.constructs import EnumWrapper
 
 
 class InvalidFileEntry(Exception):
@@ -19,28 +41,18 @@ class FileEntry:
             self,
             name: str,
             file_type: FileType,
-            sector: int,
-            size: int,
-            realize_file_func: Callable[['FileEntry'], None]
+            f_file_content: Callable
     ) -> None:
         self.name = name 
         self.file_type = file_type
-        self.sector = sector
-        self.size = size
-        self.realized = False
-        self.invalid = False
-        self.physical_address = 0
-        self.get_stream: Callable[[BufferedIOBase], BufferedIOBase] = lambda x: x
-        self._file = None
-        self._realize_file_func = realize_file_func
+        self._file = None 
+        self._f_file_content = f_file_content
 
 
     @property 
     def file(self):
-        if not self.realized:
-            self._realize_file_func(self)
-        if self.invalid:
-            raise InvalidFileEntry
+        if not self._file:
+            self._file = self._f_file_content()
         return self._file
 
     
@@ -49,23 +61,93 @@ class FileEntry:
         return self.file_type.to_string()
 
 
-    def _realize_file_callback(
-        self,
-        partition_segment: BufferedIOBase,
-        physical_address: int,
-        get_file_stream: Callable[[BufferedIOBase], BufferedIOBase],
-    ):
-        self.physical_address = physical_address
-        self.get_stream = get_file_stream
+FileEntryConstruct = Struct(
+    "name"      / AkaiPaddedString(12),
+    Padding(4),
+    "file_type" / EnumWrapper(Int8ul, FileType),
+    "size"      / Int24ul,
+    "start"     / Int16ul,
+    Padding(2),
+    "file_stream" / Computed(lambda this:
+        StreamWrapper(this._.sat.get_segment(this.start), this.size)
+    )
+)
+@dataclass
+class FileEntryContainer(Container):
+    name:           str
+    file_type:      FileType
+    size:           int
+    start:          int
+    file_stream:    StreamWrapper
 
-        if self.file_type in (FileType.SAMPLE_S1000, FileType.SAMPLE_S3000):
+
+class FileEntriesAdapter(Subconstruct):
+
+
+    def __init__(self, sat, subcon):
+        super().__init__(subcon)
+        self.sat = sat
+
+
+    def _parse(self, stream, context, path)->Iterable[FileEntry]:
+
+
+        def is_table_end(stream_inner):
+            original_address = stream_inner.tell()
+
+            stream_inner.seek(8, SEEK_CUR)
+            end_flag = Int16ul.parse_stream(stream_inner)
+
+            stream_inner.seek(original_address, SEEK_SET)
+
+            result = (end_flag == FILE_TABLE_END_FLAG)
+            return result
+
+        sat = self.sat(context) if callable(self.sat) else self.sat
+
+        # read file entries containers
+        stream.seek(0, SEEK_END)
+        file_table_size = stream.tell()
+        stream.seek(0, SEEK_SET)
+
+        table_entry_size = self.subcon._sizeof(context, path)
+        max_table_entry_cnt = file_table_size // table_entry_size
+        
+        file_entries: List[FileEntry] = []
+        for _i in range(max_table_entry_cnt):
+            if is_table_end(stream):
+                break
+            file_entry_container: Union[FileEntryContainer, None] = None
             try:
-                sample_file = Sample.from_raw_stream(partition_segment, get_file_stream)
-            except (RequestedInvalidSector, InvalidCharacter):
-                self.invalid = True
-                return 
-            self._file = sample_file
-        else:
-            self.invalid = True
-            return
-        self.realized = True
+                file_entry_container = self.subcon.parse_stream(stream, _=context, sat=sat)
+            except (ConstructError, RequestedInvalidSector):
+                pass
+            if file_entry_container is not None and file_entry_container.start > 0:
+                
+                file_content = Lazy(FileAdapter(
+                        this._.sat,
+                        FileConstruct
+                    )).parse_stream(
+                        file_entry_container.file_stream,
+                        _=context,
+                        file_type=file_entry_container.file_type
+                    )
+
+                if file_content is None:
+                    raise ConstructError
+
+                file_entry = FileEntry(
+                    file_entry_container.name,
+                    file_entry_container.file_type,
+                    file_content
+                )
+
+                file_entries.append(file_entry)
+
+        result = file_entries
+        return result
+
+
+    def _build(self, obj, stream, context, path):
+        raise NotImplementedError
+

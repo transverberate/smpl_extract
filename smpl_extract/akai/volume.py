@@ -1,26 +1,39 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-from io import SEEK_CUR, SEEK_END, SEEK_SET, BufferedIOBase
-from typing import Callable, Dict, List, Union
-from construct import Int16ul
+import collections
+from dataclasses import dataclass
+from typing import Dict
+from typing import Iterable
+from typing import OrderedDict
+from construct.core import Adapter
+from construct.core import ConstructError
+from construct.core import Int16ul
+from construct.core import Struct
+from construct.lib.containers import Container
+from construct.expr import this
 
-from .data_types import FileEntryConstruct, FILE_TABLE_END_FLAG, InvalidCharacter, VolumeType
-from .sample import Sample
-from .file_entry import FileEntry, InvalidFileEntry
+from .data_types import VolumeType
+from .akai_string import AkaiPaddedString
+from .file_entry import FileEntriesAdapter
+from .file_entry import FileEntryConstruct
+from .file_entry import InvalidFileEntry
+from .file_entry import FileEntry
+from util.constructs import EnumWrapper
+
 
 class Volume:
 
 
     def __init__(
             self,
-            sector: int,
+            # sector: int,
             name: str = "",
             volume_type: VolumeType = VolumeType.INACTIVE,
-            file_entries: List[FileEntry] = None
+            file_entries: Iterable[FileEntry] = None
     ) -> None:
         
-        self.sector = sector
+        # self.sector = sector
         self.name = name
         self.volume_type = volume_type
         self._file_entries = file_entries or []
@@ -32,7 +45,7 @@ class Volume:
         for file_entry in self._file_entries:
             try:
                 file = file_entry.file
-            except InvalidFileEntry:
+            except (InvalidFileEntry, ConstructError):
                 file = None
 
             if file is not None:
@@ -55,61 +68,73 @@ class Volume:
         return self.volume_type.to_string()
 
 
-    @classmethod
-    def from_raw_stream(cls, 
-            volume_header_stream: BufferedIOBase,
-            name,
-            starting_sector: int,
-            volume_type: VolumeType,
-            realize_file_fun: Callable[[FileEntry], None]
-    )->'Volume':
-        
-        
-        def is_table_end(stream: BufferedIOBase):
-            original_address = stream.tell()
+VolumeBodyConstruct = result = Struct(
+    "file_entries" / FileEntriesAdapter(this._.sat, FileEntryConstruct),
+)
+@dataclass
+class VolumeBodyContainer(Container):
+    file_entries: Iterable[FileEntry]
 
-            stream.seek(8, SEEK_CUR)
-            end_flag = Int16ul.parse_stream(stream)
-
-            stream.seek(original_address, SEEK_SET)
-
-            result = (end_flag == FILE_TABLE_END_FLAG)
-            return result
+VolumeEntryConstruct = Struct(
+    "name" / AkaiPaddedString(12),
+    "type" / EnumWrapper(Int16ul, VolumeType),
+    "start" / Int16ul
+).compile()
+@dataclass
+class VolumeEntryContainer(Container):
+    name:   str
+    type:   VolumeType
+    start:  int
 
 
-        # read file entries
-        volume_header_stream.seek(0, SEEK_END)
-        file_table_size = volume_header_stream.tell()
-        # reset to stream head
-        volume_header_stream.seek(0, SEEK_SET)
+class VolumesAdapter(Adapter):
 
-        table_entry_size = FileEntryConstruct.sizeof()
-        max_table_entry_cnt = file_table_size // table_entry_size
 
-        file_entries = []
-        for i in range(max_table_entry_cnt):
-            if is_table_end(volume_header_stream):
-                break
-            file_table_entry = None
-            try:
-                file_table_entry = FileEntryConstruct.parse_stream(volume_header_stream)
-            except InvalidCharacter:
-                pass
-            if file_table_entry is not None and file_table_entry.start > 0:
-                filename    = file_table_entry.name
-                file_type   = file_table_entry.type
-                size        = file_table_entry.size
-                file_sector = file_table_entry.start
-                
-                file_entry = FileEntry(
-                    filename,
-                    file_type,
-                    file_sector,
-                    size,
-                    realize_file_fun
+    def __init__(self, volume_entries, sat, subcon):
+        super().__init__(subcon)
+        self.volume_entries = volume_entries
+        self.sat = sat
+
+    def _decode(self, obj, context, path)->OrderedDict[str, Volume]:
+        del obj, path  # Unused
+
+        if callable(self.volume_entries):
+            volume_entries = self.volume_entries(context) 
+        else:
+            volume_entries = self.volume_entries 
+        sat = self.sat(context) if callable(self.sat) else self.sat
+
+        volumes: OrderedDict[str, Volume] = collections.OrderedDict()
+        for volume_entry in volume_entries:
+            volume_type = volume_entry.type
+            
+            if volume_type != VolumeType.INACTIVE:
+                name            = volume_entry.name
+                volume_sector   = volume_entry.start
+                volume_stream = sat.get_segment(volume_sector)
+
+                volume_body = VolumeBodyConstruct.parse_stream(
+                    volume_stream,
+                    _=context,
+                    sat=sat
                 )
-                file_entries.append(file_entry)
 
-        result = cls(starting_sector, name, volume_type, file_entries)
+                if volume_body is None:
+                    raise ConstructError
 
-        return result
+                file_entries = volume_body.file_entries
+
+                volume = Volume(
+                    name,
+                    volume_type,
+                    file_entries
+                )
+
+                volumes[name] = volume
+
+        return volumes
+
+
+    def _encode(self, obj, context, path):
+        raise NotImplementedError
+

@@ -1,5 +1,6 @@
-from enum import Enum
-from typing import Dict, Tuple
+import enum
+from typing import Dict
+from typing import Tuple
 
 
 NOTES_IN_OCTAVE = 12
@@ -10,7 +11,7 @@ MIDI_A0         = 24    # C3 at 60
 class MidiNote:
 
 
-    class ScaleDegree(Enum):
+    class ScaleDegree(enum.Enum):
         A = 0
         B = 1
         C = 2
@@ -119,3 +120,4 @@ class MidiNote:
         byte_offset = self.to_int_a0()
         byte_out = byte_offset + MIDI_A0
         return byte_out
+

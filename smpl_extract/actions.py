@@ -1,18 +1,16 @@
-import math
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-from io import BufferedIOBase
-from typing import Callable, List, Tuple, TypedDict, Union
 from functools import wraps
 import re
+from typing import Callable, List, Tuple, Union
 
 from akai.partition import Partition
 from akai.file_entry import FileEntry
 from akai.sample import Sample
 from akai.image import AkaiImage, InvalidPathStr
 from akai.data_types import FileType
-from wav.writer import write_wave_from_samples
+from wav.akai import WavAkaiSampleStruct
 
 
 def _wrap_filestream(func: Callable):
@@ -78,10 +76,11 @@ def ls_action(image: AkaiImage, path: str):
 @_wrap_filestream
 def write_wave_out(image: AkaiImage, file_path: str, channels: List[Sample]):
     with open(file_path, "wb") as export_stream:
-        write_wave_from_samples(image.file, export_stream, channels)
+        WavAkaiSampleStruct.build_stream(channels, export_stream)
     return
 
 
+_SAFE_ENDING = re.compile(r"(.+?)\s*\.?\s*$")
 class ExportEntry:
 
     def __init__(
@@ -91,10 +90,18 @@ class ExportEntry:
         file: str,
         channels: List[Sample]
     ):
-        self.partition = partition
-        self.volume = volume
-        self.file = file
+        self.partition = self.sanitize_name(partition)
+        self.volume = self.sanitize_name(volume)
+        self.file = self.sanitize_name(file)
         self.channels = channels
+
+    
+    def sanitize_name(self, name: str)->str:
+        match = _SAFE_ENDING.match(name)
+        if not match:
+            raise Exception(f"Invalid name {name}")
+        result = match.group(1)
+        return result
 
 
     def get_file_path_levels(self)->List[str]:
@@ -122,7 +129,7 @@ class ExportEntry:
         write_wave_out(image_stream, file_path + ".wav", self.channels)
 
 
-_STEREO_FILENAME = re.compile(r"(.*?)(\s+)(L|R)\s*$")
+_STEREO_FILENAME = re.compile(r"(.*?)([\s-]+)(L|R)\s*$")
 @_wrap_filestream
 def export_samples_to_wav(image: AkaiImage, base_dir: str):
 
@@ -158,7 +165,9 @@ def export_samples_to_wav(image: AkaiImage, base_dir: str):
                         
                         entry = ExportEntry(partition_name, volume_name, export_name, channels)
                         entry.export_file(image, base_dir)
-                        full_path = "/".join((partition_name + ":", volume_name, export_name))
+                        path_levels = entry.get_file_path_levels()
+                        path_levels[0] += ":"
+                        full_path = "/".join(path_levels) + ".wav"
                         print(f"Exported {full_path}")
 
 

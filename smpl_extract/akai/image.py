@@ -1,12 +1,17 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-from io import SEEK_END, SEEK_SET, BufferedIOBase
-
-from typing import Dict, List
+from io import IOBase
+from io import SEEK_END
+from io import SEEK_SET
 import re
+from typing import Dict
+from typing import List
+from construct.core import ConstructError
 
-from .partition import InvalidPartition, Partition
+from .partition import InvalidPartition
+from .partition import Partition
+from .partition import PartitionConstruct
 
 
 class InvalidPathStr(Exception):
@@ -17,7 +22,7 @@ class AkaiImage:
 
     def __init__(
             self,
-            file: BufferedIOBase
+            file: IOBase
     ) -> None:
         self.file = file
         self.name = "root"
@@ -36,18 +41,10 @@ class AkaiImage:
         while self.file.tell() < self.file_size:
             name = chr( ord("A") + partition_cnt )
             try:
-                partition = Partition.from_raw_stream(
-                    self.file, 
-                    name=name,
-                    total_filesize=self.file_size
-                )
-            except InvalidPartition:
+                partition = PartitionConstruct.parse_stream(self.file, name=name)
+            except (InvalidPartition, ConstructError):
                 break
-
             self._partitions[name] = partition
-
-            # seek to next partition
-            self.file.seek(partition.size + partition.physical_address, SEEK_SET)
             partition_cnt += 1
 
         self._partitions_loaded_flag = True
@@ -92,7 +89,7 @@ class AkaiImage:
             token = tokens[i]
             token_upper = token.upper()
 
-            if (not hasattr(current_node, "children") or token_upper not in current_node.children.keys()):
+            if (not hasattr(current_node, "children") or (current_node.children is not None and token_upper not in current_node.children.keys())):
                 if len(tokens) > 0:
                     tokens[0] = tokens[0] + ":"
                 path_so_far = "/".join(tokens[:i]) + "/" if current_node != self else "image"
@@ -101,3 +98,4 @@ class AkaiImage:
             current_node = current_node.children[token_upper]
         
         return current_node
+
