@@ -89,7 +89,7 @@ letters (e.g., `A` `B` `C` `D` etc.). Each partition contains a variable number 
 Each volume contains a variable number of *files*. Files can contain *sample data*, 
 *program data*, or other *metadata* the sampler uses to synthesize output. Each file has a 
 *name* and a *type*. For more information on the structure of an AKAI image see the 
-[corresponding section](#akia-s3000-format).
+corresponding section.
 
 The `ls` command of this toolset lists the contents of a given path within an AKAI image. 
 This command has the following form

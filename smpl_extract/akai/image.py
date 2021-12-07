@@ -93,7 +93,7 @@ class AkaiImage:
                 if len(tokens) > 0:
                     tokens[0] = tokens[0] + ":"
                 path_so_far = "/".join(tokens[:i]) + "/" if current_node != self else "image"
-                raise InvalidPathStr(f"The enitity \"{token}\" was not found in \"{path_so_far}\".")
+                raise InvalidPathStr(f"The entity \"{token}\" was not found in \"{path_so_far}\".")
 
             current_node = current_node.children[token_upper]
         
