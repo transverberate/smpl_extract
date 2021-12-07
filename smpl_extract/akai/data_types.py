@@ -3,6 +3,13 @@ import enum
 
 AKAI_SECTOR_SIZE = 0x2000
 
+# The least-significant 16bits (little endian) 
+# of the first 97 multiples of 3,333
+AKAI_PARTITION_MAGIC = b"".join((
+    int(3333 * i & 0xFFFF).to_bytes(2, "little", signed=False)
+    for i in range(1,98)
+))
+
 S1000_VOLUME_TYPE = 1
 S3000_VOLUME_TYPE = 3
 

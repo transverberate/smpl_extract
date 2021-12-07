@@ -6,8 +6,11 @@ from typing import Callable
 from typing import OrderedDict
 from construct.core import Bytes
 from construct.core import ConstructError
+from construct.core import Const
+from construct.core import Int8ul
 from construct.core import Lazy
-from construct.core import Padding
+from construct.debug import Probe
+from construct.core import Rebuild
 from construct.core import Struct
 from construct.core import Subconstruct
 from construct.core import Int16ul
@@ -15,7 +18,8 @@ from construct.core import Computed
 from construct.core import Tell
 from construct.expr import this
 
-from .data_types import AKAI_SAT_ENTRY_CNT
+from .data_types import AKAI_PARTITION_MAGIC
+from .data_types import  AKAI_SAT_ENTRY_CNT
 from .data_types import AKAI_SECTOR_SIZE
 from .data_types import AKAI_VOLUME_ENTRY_CNT
 from .data_types import InvalidCharacter
@@ -98,13 +102,18 @@ PartitionHeaderConstruct = Struct(
     "start_address" / Tell,
     "size" / Int16ul,
     "total_size" / Computed(this.size * AKAI_SECTOR_SIZE),
-    Padding(200),
+    "check_sum_x" / Computed(this.size//128 - 1),
     "partition_stream" / SubStreamConstruct(
         StreamOffset, 
         size=this.total_size, 
         offset=this.start_address
-    )
-).compile()
+    ),
+    Const(b"\x00\x00"),
+    Const(AKAI_PARTITION_MAGIC),
+    Rebuild(Int8ul, lambda this: 0x55 if this.check_sum_x % 2 == 0 else 0xD5),
+    Rebuild(Int8ul, lambda this: this.check_sum_x//2 + 0xBA),
+    Const(b"\x2F\x00"),
+)
 
 
 
