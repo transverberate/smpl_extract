@@ -10,6 +10,14 @@ from typing import Union
 from construct.core import Construct
 
 
+class AttemptToReadBeyondBuffer(Exception):
+    pass
+
+
+class SectorReadError(Exception):
+    pass
+
+
 class StreamWrapper(IOBase):
     def __init__(
             self, 
@@ -43,7 +51,7 @@ class StreamWrapper(IOBase):
         return self.position
 
 
-    def seek(self, offset: int, whence: int):
+    def seek(self, offset: int, whence: int = SEEK_CUR):
         starting_position = 0
         if whence == SEEK_CUR:
             starting_position = self.position

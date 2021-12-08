@@ -10,6 +10,8 @@ from akai.file_entry import FileEntry
 from akai.sample import Sample
 from akai.image import AkaiImage, InvalidPathStr
 from akai.data_types import FileType
+from alcohol.mdf import is_mdf_image
+from alcohol.mdf import MdfStream
 from wav.akai import WavAkaiSampleStruct
 
 
@@ -17,10 +19,13 @@ def _wrap_filestream(func: Callable):
     @wraps(func)
     def inner(file: Union[str, AkaiImage], *args, **kwargs):
         if isinstance(file, str):
-            fstream = AkaiImage(open(file, "rb"))
+            fstream = open(file, "rb")
+            if is_mdf_image(fstream):
+                fstream = MdfStream(fstream)
+            result = AkaiImage(fstream)
         else:
-            fstream = file
-        func(fstream, *args, **kwargs)
+            result = file
+        func(result, *args, **kwargs)
     return inner
 
 
@@ -170,5 +175,3 @@ def export_samples_to_wav(image: AkaiImage, base_dir: str):
                         full_path = "/".join(path_levels) + ".wav"
                         print(f"Exported {full_path}")
 
-
-        

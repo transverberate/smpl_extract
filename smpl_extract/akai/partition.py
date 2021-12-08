@@ -9,7 +9,6 @@ from construct.core import ConstructError
 from construct.core import Const
 from construct.core import Int8ul
 from construct.core import Lazy
-from construct.debug import Probe
 from construct.core import Rebuild
 from construct.core import Struct
 from construct.core import Subconstruct

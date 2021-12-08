@@ -27,13 +27,11 @@ class Volume:
 
     def __init__(
             self,
-            # sector: int,
             name: str = "",
             volume_type: VolumeType = VolumeType.INACTIVE,
             file_entries: Iterable[FileEntry] = None
     ) -> None:
         
-        # self.sector = sector
         self.name = name
         self.volume_type = volume_type
         self._file_entries = file_entries or []
