@@ -5,6 +5,7 @@ from collections import abc
 import math
 import numpy as np
 from typing import List
+from typing import Tuple
 from typing import Union
 from construct.core import Adapter
 from construct.lib.containers import Container
@@ -18,6 +19,7 @@ from .base import WavRiffChunkType
 from .base import WavSampleChunkContainer
 from akai.data_types import AkaiLoopType
 from akai.sample import Sample
+from midi import MidiNote
 
 
 def get_fmt_chunk_data(channels: List[Sample])->WavFormatChunkContainer:
@@ -29,6 +31,18 @@ def get_fmt_chunk_data(channels: List[Sample])->WavFormatChunkContainer:
         sample_rate=master_channel.sample_rate,
         bits_per_sample=master_channel.bytes_per_sample*8,
     )
+    return result
+
+
+def get_smpl_normalized_pitch(semi: int, cents: int)->Tuple[int, int]:
+    CENTS_DIV = float(0x80000000) / 50
+
+    comb_cents = 50*semi + cents
+    note_offset = (comb_cents) // 100
+    cents_offset = (comb_cents) % 100
+    cents_normalized = int(round(cents_offset * CENTS_DIV))
+
+    result = (note_offset, cents_normalized)
     return result
 
 
@@ -52,12 +66,18 @@ def get_smpl_chunk_data(channels: List[Sample])->WavSampleChunkContainer:
                 play_cnt=play_cnt
             ))
     sample_period_nano = (10**9)/master_channel.sample_rate
-    pitch_cents_normalized = 0 # TODO, implement formula
+    note_pitch_offset, pitch_cents_normalized = get_smpl_normalized_pitch(
+        master_channel.pitch_semi,
+        master_channel.pitch_cents
+    )
+    adj_note_pitch = MidiNote.from_midi_byte(
+        master_channel.note_pitch.to_midi_byte() + note_pitch_offset
+    )
     smpl_header = WavSampleChunkContainer(
         manufacturer=0,
         product=0,
         sample_period=round(sample_period_nano),
-        midi_note=master_channel.note_pitch,
+        midi_note=adj_note_pitch,
         pitch_fraction=pitch_cents_normalized,
         smpte_format=SmpteFormat.NONE,
         smpte_offset=0,
@@ -67,11 +87,10 @@ def get_smpl_chunk_data(channels: List[Sample])->WavSampleChunkContainer:
     return smpl_header
 
 
-BUFFER_SIZE = 0x4000
+BUFFER_SIZE = 0x1000
 
 
 def wave_data_generator(
-        # image_file: IOBase,
         channels: Union[List[Sample], Sample]
 ):
     if not isinstance(channels, abc.Iterable):
