@@ -2,13 +2,16 @@ import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-from io import IOBase, SEEK_END, SEEK_SET
+
 from construct.core import Bytes
 from construct.core import Byte
 from construct.core import ConstructError
 from construct.core import Const
 from construct.core import Int24ub
 from construct.core import Struct
+from io import IOBase
+from io import SEEK_END
+from io import SEEK_SET
 
 from util.sector import SectorStream
 
@@ -44,7 +47,7 @@ def is_mdf_image(stream: IOBase)->bool:
 
     result = True
     try:
-        MdfSectorHeaderConstruct.parse_stream(stream)
+        MdfSectorHeaderConstruct.parse_stream(stream)  # type: ignore
     except ConstructError:
         result = False 
 

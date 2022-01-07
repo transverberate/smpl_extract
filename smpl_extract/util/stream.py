@@ -1,13 +1,14 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+
+from construct.core import Construct
 from io import IOBase
 from io import SEEK_CUR
 from io import SEEK_END
 from io import SEEK_SET
 from typing import Type
 from typing import Union
-from construct.core import Construct
 
 
 class AttemptToReadBeyondBuffer(Exception):

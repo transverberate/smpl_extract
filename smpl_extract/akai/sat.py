@@ -1,7 +1,7 @@
-from io import IOBase
-from dataclasses import dataclass
-from typing import List
 from construct.core import Adapter
+from dataclasses import dataclass
+from io import IOBase
+from typing import List
 
 from .data_types import AKAI_SAT_EOF_FLAG
 from .data_types import AKAI_SAT_FREE_FLAG
@@ -76,7 +76,7 @@ class SegmentAllocationTableAdapter(Adapter):
 
 
     def __init__(self, partition_stream, subcon):
-        super().__init__(subcon)
+        super().__init__(subcon)  # type: ignore
         self.partition_stream = partition_stream
 
 

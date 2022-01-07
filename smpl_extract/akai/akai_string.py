@@ -1,13 +1,15 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-from typing import List
-from typing import Union
+
 from construct.core import Adapter
 from construct.core import ConstructError
 from construct.core import FixedSized
 from construct.core import GreedyBytes
 from construct.core import NullStripped
+from construct.core import Padded
+from typing import List
+from typing import Union
 
 from .data_types import CHAR_MAP_A
 from .data_types import CHAR_MAP_MINUS
@@ -117,6 +119,7 @@ def char_akai_to_ascii(bytes_in: Union[bytes, List[int]])->str:
 
 
 class AkaiString(Adapter):
+    
     def _decode(
             self, 
             obj: Union[bytes, List[int]], 
@@ -142,13 +145,14 @@ class AkaiString(Adapter):
         return result
 
 
-def AkaiPaddedString(length)->AkaiString:
-    result = AkaiString(FixedSized(
+def AkaiPaddedString(length)->Adapter:
+    result = AkaiString(FixedSized(length, Padded(
         length, 
         NullStripped(
             GreedyBytes, 
             pad=CHAR_MAP_SPACE[CharFormat.AKAI].to_bytes(1, 'little')
-        )
-    ))
+        ),
+        pattern=CHAR_MAP_SPACE[CharFormat.AKAI].to_bytes(1, 'little')
+    )))
     return result
 

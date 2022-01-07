@@ -4,10 +4,6 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
-from enum import IntEnum
-from dataclasses import dataclass
-from dataclasses import field
-
 from construct.core import Byte
 from construct.core import Const
 from construct.core import Enum as EnumConstruct 
@@ -24,6 +20,9 @@ from construct.core import Switch
 from construct.lib.containers import Container
 from construct.expr import len_
 from construct.expr import this
+from enum import IntEnum
+from dataclasses import dataclass
+from dataclasses import field
 
 from util import bytes2int
 from midi import MidiNote
@@ -41,7 +40,7 @@ class WavLoopType(IntEnum):
     FORWARD     = 0
     ALTERNATING = 1
     REVERSE     = 2
-    UNKOWN      = 3
+    UNKNOWN     = 3
 
 
 WavLoopStruct = Struct(
@@ -72,7 +71,7 @@ WavSampleChunkStruct = Struct(
     "midi_note"         / ExprAdapter(
                             Int32ul,
                             lambda x,y: MidiNote.from_midi_byte(x),
-                            lambda x,y: x.to_midi_byte()
+                            lambda x,y: x.to_midi_byte()  # type: ignore
                         ),
     "pitch_fraction"    / Int32ul,
     "smpte_format"      / EnumConstruct(
@@ -96,7 +95,7 @@ class WavSampleChunkContainer(Container):
     manufacturer:       int                     = 0
     product:            int                     = 0
     sample_period:      int                     = 0
-    midi_note:          MidiNote                = field(default=MidiNote(MidiNote.ScaleDegree.C, False, 4))
+    midi_note:          MidiNote                = MidiNote.from_string("C4")
     pitch_fraction:     int                     = 0
     smpte_format:       SmpteFormat             = SmpteFormat.NONE
     smpte_offset:       int                     = 0
@@ -128,6 +127,7 @@ class WavFormatChunkContainer(Container):
 
 WavDataChunkStruct = Lazy(GreedyRange(GreedyBytes))
 
+
 WavRiffChunkType = EnumConstruct(
     Int32ul,
     FMT=bytes2int(b"fmt "),
@@ -156,5 +156,4 @@ RiffStruct = Struct(
     "fourcc"    / Const(b"RIFF"),
     "data"      / Prefixed(Int32ul, WavRiffBodyStruct),
 )
-
 

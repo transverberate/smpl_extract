@@ -75,7 +75,11 @@ class PartitionConstructAdapter(Subconstruct):
     def _parse(self, stream, context, path):
 
         try:
-            partition_container = self.subcon._parse(stream, context, path)
+            partition_container = self.subcon._parse(  # type: ignore
+                stream,  
+                context, 
+                path
+            )
         except InvalidCharacter:
             raise ConstructError
 
@@ -122,11 +126,11 @@ PartitionConstruct = PartitionConstructAdapter(
         "volume_entries" / VolumeEntryConstruct[AKAI_VOLUME_ENTRY_CNT],
         "sat" / SegmentAllocationTableAdapter(
             this.header.partition_stream,
-            Int16ul[AKAI_SAT_ENTRY_CNT]
+            Int16ul[AKAI_SAT_ENTRY_CNT]  # type: ignore
         ),  
         "volumes" / Lazy(VolumesAdapter(
             this.volume_entries,
-            this.sat,
+            this.sat,  # type: ignore
             Lazy(Bytes(
             lambda this: this.header.total_size \
                 - PartitionHeaderConstruct.sizeof() \

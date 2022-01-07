@@ -1,14 +1,7 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-from dataclasses import dataclass
-from io import SEEK_CUR
-from io import SEEK_END
-from io import SEEK_SET
-from typing import Callable
-from typing import Iterable
-from typing import List
-from typing import Union
+
 from construct.core import Computed
 from construct.core import ConstructError
 from construct.core import Lazy
@@ -20,6 +13,14 @@ from construct.core import Int24ul
 from construct.core import Subconstruct
 from construct.lib.containers import Container
 from construct.expr import this
+from dataclasses import dataclass
+from io import SEEK_CUR
+from io import SEEK_END
+from io import SEEK_SET
+from typing import Callable
+from typing import Iterable
+from typing import List
+from typing import Union
 
 from .akai_string import AkaiPaddedString
 from .data_types import FILE_TABLE_END_FLAG
@@ -58,13 +59,13 @@ class FileEntry:
     
     @property
     def type(self):
-        return self.file_type.to_string()
+        return str(self.file_type)
 
 
 FileEntryConstruct = Struct(
     "name"      / AkaiPaddedString(12),
     Padding(4),
-    "file_type" / EnumWrapper(Int8ul, FileType),
+    "file_type" / EnumWrapper(Int8ul, FileType),  
     "size"      / Int24ul,
     "start"     / Int16ul,
     Padding(2),
@@ -85,7 +86,7 @@ class FileEntriesAdapter(Subconstruct):
 
 
     def __init__(self, sat, subcon):
-        super().__init__(subcon)
+        super().__init__(subcon)  # type: ignore
         self.sat = sat
 
 
@@ -110,7 +111,7 @@ class FileEntriesAdapter(Subconstruct):
         file_table_size = stream.tell()
         stream.seek(0, SEEK_SET)
 
-        table_entry_size = self.subcon._sizeof(context, path)
+        table_entry_size = self.subcon.sizeof()
         max_table_entry_cnt = file_table_size // table_entry_size
         
         file_entries: List[FileEntry] = []
@@ -128,7 +129,7 @@ class FileEntriesAdapter(Subconstruct):
                         this._.sat,
                         FileConstruct
                     )).parse_stream(
-                        file_entry_container.file_stream,
+                        file_entry_container.file_stream,  # type: ignore
                         _=context,
                         file_type=file_entry_container.file_type
                     )

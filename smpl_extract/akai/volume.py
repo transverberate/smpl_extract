@@ -1,6 +1,7 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+
 import collections
 from dataclasses import dataclass
 from typing import Dict
@@ -43,7 +44,7 @@ class Volume:
         for file_entry in self._file_entries:
             try:
                 file = file_entry.file
-            except (InvalidFileEntry, ConstructError):
+            except (InvalidFileEntry, ConstructError) as e:
                 file = None
 
             if file is not None:
@@ -63,7 +64,7 @@ class Volume:
 
     @property
     def type(self):
-        return self.volume_type.to_string()
+        return str(self.volume_type)
 
 
 VolumeBodyConstruct = result = Struct(
@@ -89,7 +90,7 @@ class VolumesAdapter(Adapter):
 
 
     def __init__(self, volume_entries, sat, subcon):
-        super().__init__(subcon)
+        super().__init__(subcon)  # type: ignore
         self.volume_entries = volume_entries
         self.sat = sat
 

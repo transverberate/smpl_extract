@@ -1,6 +1,7 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+
 from gettext import gettext
 from argparse import ArgumentParser
 
@@ -183,3 +184,4 @@ if __name__ == "__main__":
         stats.print_stats()
 
     pass
+

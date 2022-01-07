@@ -1,14 +1,15 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
 from collections import abc
+from construct.core import Adapter
+from construct.lib.containers import Container
 import math
 import numpy as np
 from typing import List
 from typing import Tuple
 from typing import Union
-from construct.core import Adapter
-from construct.lib.containers import Container
 
 from .base import RiffStruct
 from .base import SmpteFormat
@@ -38,7 +39,7 @@ def get_smpl_normalized_pitch(semi: int, cents: int)->Tuple[int, int]:
     CENTS_DIV = float(0x80000000) / 50
 
     comb_cents = 50*semi + cents
-    note_offset = (comb_cents) // 100
+    note_offset = round((comb_cents) // 100)
     cents_offset = (comb_cents) % 100
     cents_normalized = int(round(cents_offset * CENTS_DIV))
 
@@ -54,9 +55,9 @@ def get_smpl_chunk_data(channels: List[Sample])->WavSampleChunkContainer:
         for i, loop in enumerate(master_channel.loop_entries):
             play_cnt = 0
             if not loop.repeat_forever:
-                loop_active_duration = loop.loop_active_duration
-                loop_duration = (loop.loop_end - loop.loop_start)/master_channel.sample_rate
-                play_cnt = round(loop_active_duration/loop_duration)
+                loop_duration = loop.loop_duration
+                loop_total_duration = (loop.loop_end - loop.loop_start)/master_channel.sample_rate
+                play_cnt = round(loop_duration/loop_total_duration)
             loop_headers.append(WavLoopContainer(
                 cue_id=i,
                 loop_type=WavLoopType.FORWARD,

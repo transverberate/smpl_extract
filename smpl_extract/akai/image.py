@@ -1,13 +1,14 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+
+from construct.core import ConstructError
 from io import IOBase
 from io import SEEK_END
 from io import SEEK_SET
 import re
 from typing import Dict
 from typing import List
-from construct.core import ConstructError
 
 from .partition import InvalidPartition
 from .partition import Partition
@@ -39,9 +40,12 @@ class AkaiImage:
     def _load_partitions(self):
         partition_cnt = 0
         while self.file.tell() < self.file_size:
-            name = chr( ord("A") + partition_cnt )
+            name = chr(ord("A") + partition_cnt)
             try:
-                partition = PartitionConstruct.parse_stream(self.file, name=name)
+                partition = PartitionConstruct.parse_stream(
+                    self.file,  # type: ignore
+                    name=name
+                )  
             except (InvalidPartition, ConstructError):
                 break
             self._partitions[name] = partition

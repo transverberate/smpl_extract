@@ -2,9 +2,12 @@ import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
 import unittest
 
-from smpl_extract.wav.base import WavDataChunkStruct, WavFormatChunkContainer, WavFormatChunkStruct
+from smpl_extract.wav.base import WavDataChunkStruct
+from smpl_extract.wav.base import WavFormatChunkContainer 
+from smpl_extract.wav.base import WavFormatChunkStruct
 
 
 class WaveTest(unittest.TestCase):
@@ -20,7 +23,7 @@ class WaveTest(unittest.TestCase):
 
         generator_instance = data_generator()
         
-        result = WavDataChunkStruct.build(generator_instance)
+        result = WavDataChunkStruct.build(generator_instance)  # type: ignore
         return self.assertEqual(result, bytes(b"\x01\x02\x03\x04"))
     
 
@@ -58,3 +61,4 @@ if __name__ == "__main__":
     except SystemExit as err:
         pass
     pass
+

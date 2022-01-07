@@ -1,17 +1,27 @@
+
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+
+from dataclasses import dataclass
 from functools import wraps
 import re
-from typing import Callable, List, Tuple, Union
+from typing import Callable
+from typing import List
+from typing import Mapping
+from typing import Tuple
+from typing import Union
+from typing import Sequence
 
 from akai.partition import Partition
 from akai.file_entry import FileEntry
 from akai.sample import Sample
-from akai.image import AkaiImage, InvalidPathStr
+from akai.image import AkaiImage
+from akai.image import InvalidPathStr
 from akai.data_types import FileType
 from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
+from util.dataclass import ItemT
 from wav.akai import WavAkaiSampleStruct
 
 
@@ -29,7 +39,6 @@ def _wrap_filestream(func: Callable):
     return inner
 
 
-_PRINT_COLUMN_WIDTH = 20
 @_wrap_filestream
 def ls_action(image: AkaiImage, path: str):
     try:
@@ -38,44 +47,139 @@ def ls_action(image: AkaiImage, path: str):
         print(e)
         return
 
-    entry_table: List[Tuple[str, str]] = []
-    header = "{}{}".format(
-        "Item".ljust(_PRINT_COLUMN_WIDTH), 
-        "Type".ljust(_PRINT_COLUMN_WIDTH)
-    )
+    if isinstance(item, FileEntry):
+        file = item.file
+        if hasattr(file, "itemize"):
+            result = file.itemize()
+            print_tree((item.name, " "*2, item.type), result)
+            return  # exit
 
+    entries: Sequence[Tuple[str, ...]] = []
+    
     if hasattr(item, "children"):
         for child in item.children.values():
             name = child.name
-            child.type
             if isinstance(child, Partition):
                 name = name + ":"
-            entry_table.append((name, child.type))
-    elif isinstance(item, FileEntry):
-        file = item.file
-        if hasattr(file, "get_info"):
-            if isinstance(file, Sample):
-                header = "Sample".ljust(2 * _PRINT_COLUMN_WIDTH)
-                info = file.get_info()
-                for key, value in info.items():
-                    entry_table.append((key, value))
-    else:
-        entry_table.append((item.name, item.type))
-    if len(entry_table) < 1:
+            entries.append((name, child.type))
+
+    if len(entries) < 1:
         print("(*empty*)")
-        return
-    # print table header
-    print(header)
-    # heading divider (spans 2 Columns)
-    print("".join(["-"] * 2 * _PRINT_COLUMN_WIDTH))
-    # print table entries
-    for row in entry_table:
-        print_entries = list(map(
-            lambda i: row[i].ljust(_PRINT_COLUMN_WIDTH) if i < 2 
-            else row[i].rjust(_PRINT_COLUMN_WIDTH), 
+        return  # exit
+
+    # print table
+    print_table(("Item", "Type"), entries)
+    return
+
+
+_TABLE_COLUMN_WIDTH = 20
+_TABLE_COLUMN_DELIMITER = " "
+def print_table(header: Tuple[str, ...], items: Sequence[Tuple[str, ...]]):
+    # calc total number of columns and the widths of each
+    num_columns = 0
+    column_widths: Mapping[int, int] = {}
+    for row in items:
+        for i, column_value in enumerate(row):
+            # total number of cols
+            if i + 1 > num_columns:
+                num_columns = i + 1
+            # width of ith column
+            width = len(column_value)
+            if i not in column_widths.keys():
+                column_widths[i] = max(width, _TABLE_COLUMN_WIDTH)
+            elif width > column_widths[i]:
+                column_widths[i] = width
+    
+    # total width is sum of column widths and the number of delimiters
+    total_width = sum(column_widths.values()) + num_columns - 1
+    
+    def make_line(
+            row: Tuple[str, ...], 
+            column_widths: Mapping[int, int] = column_widths
+    )->str:
+        result = _TABLE_COLUMN_DELIMITER.join(map(
+            lambda i: row[i].ljust(column_widths[i]), 
             range(len(row))
         ))
-        print("".join(print_entries))
+        return result
+
+    # print the table
+    print(make_line(header))  # header
+    print("-" * total_width)  # divider
+    for row in items:
+        print(make_line(row))
+    print()
+    return
+
+
+_TREE_TOTAL_WIDTH   = 80
+_TREE_DELIMITER     = " "
+_TREE_MAX_ROWS      = 300
+def print_tree(header: Tuple[str, ...], items: ItemT):
+
+
+    @dataclass
+    class RowEntry:
+        content: Tuple[str, ...] = ("", )
+        depth: int = 0
+        is_divider: bool = False
+
+
+    row_entries: Sequence[RowEntry] = []
+
+
+    def build_inner(item, depth=0, prev_key="", row_entries=row_entries):
+
+        if isinstance(item, Sequence) or isinstance(item, Mapping):
+
+            if isinstance(item, Sequence):
+                kv_pair = (
+                    ("".join((prev_key, f"[{str(i)}]")), value)
+                    for i,value in enumerate(item)
+                )
+            else:
+                kv_pair = item.items()
+
+            for key, value in kv_pair:
+                    content = [f"{key}:"]
+                    if isinstance(value, str):
+                        content.append(str(value))
+                    elif len(value) == 0:
+                        content.append("None")
+                    row_entries.append(RowEntry(tuple(content), depth))
+                    # expand value
+                    if not isinstance(value, str):
+                        build_inner(
+                            value, 
+                            depth=(depth + 1), 
+                            prev_key=key, 
+                            row_entries=row_entries
+                        )
+
+
+    row_entries.append(RowEntry(tuple(header)))
+    row_entries.append(RowEntry(is_divider=True))  # divider
+    build_inner(items)  # fill row_entries
+
+    # print tree
+    for i, row in enumerate(row_entries):
+        if i > _TREE_MAX_ROWS:
+            print()
+            print(f"(...) exceeded {_TREE_MAX_ROWS} lines")
+            break
+        if row.is_divider:
+            result = "-" * _TREE_TOTAL_WIDTH
+            print(result)
+            continue
+        
+        column_values = ((' ', ) * row.depth) + row.content 
+        result = _TREE_DELIMITER.join(column_values)
+        if len(result) > _TREE_TOTAL_WIDTH:
+            result = result[0:_TREE_TOTAL_WIDTH-3] + "..." 
+        print(result)
+    print()
+    
+    return
 
 
 @_wrap_filestream

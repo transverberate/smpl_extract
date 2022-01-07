@@ -10,6 +10,7 @@ from construct.expr import this
 from .data_types import FileType
 from .data_types import InvalidCharacter
 from .data_types import FileType
+from .program import ProgramConstruct
 from .sample import SampleAdapter
 from .sample import SampleHeaderConstruct
 from .sat import RequestedInvalidSector
@@ -22,8 +23,10 @@ class File:
 FileConstruct = Switch(
     this.type,
     {
-        FileType.SAMPLE_S1000: SampleAdapter(SampleHeaderConstruct),
-        FileType.SAMPLE_S3000: SampleAdapter(SampleHeaderConstruct)
+        FileType.SAMPLE_S1000:  SampleAdapter(SampleHeaderConstruct),
+        FileType.SAMPLE_S3000:  SampleAdapter(SampleHeaderConstruct),
+        FileType.PROGRAM_S1000: ProgramConstruct,
+        FileType.PROGRAM_S3000: ProgramConstruct
     }
 )
 
@@ -32,7 +35,7 @@ class FileAdapter(Subconstruct):
 
 
     def __init__(self, sat, subcon):
-        super().__init__(subcon)
+        super().__init__(subcon)  # type: ignore
         self.sat = sat
         self.flagbuildnone = True
 
@@ -41,8 +44,8 @@ class FileAdapter(Subconstruct):
         del path  # Unused
         try:
             file = FileConstruct.parse_stream(stream, type=context.file_type)
-        except (RequestedInvalidSector, InvalidCharacter):
-            raise ConstructError
+        except (RequestedInvalidSector, InvalidCharacter) as e:
+            raise ConstructError from e
 
         return file
 
@@ -53,5 +56,6 @@ class FileAdapter(Subconstruct):
 
     # Required for encapsulating Lazy Construct 
     def _sizeof(self, context, path):
+        del context, path  # Unused
         return 0
 

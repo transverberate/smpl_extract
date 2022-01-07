@@ -1,13 +1,21 @@
 import os, sys
+
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
+from construct.core import RangeError
+from construct.lib.containers import Container
+from dataclasses import asdict
 import unittest
 
 from smpl_extract.akai.data_types import AKAI_PARTITION_MAGIC
+from smpl_extract.akai.keygroup import KeygroupConstruct
+from smpl_extract.akai.keygroup import KeygroupContainer
+from smpl_extract.akai.keygroup import VelocityZoneContainer
 
 
-class AkaiPartitionTest(unittest.TestCase):
+class AkaiTest(unittest.TestCase):
 
 
     def test_akai_partition_magic_valid(self):
@@ -33,6 +41,52 @@ class AkaiPartitionTest(unittest.TestCase):
 
         return True
 
+    
+    def test_keygroup_size(self):
+        keygroup = KeygroupContainer(
+            velocity_zones=[VelocityZoneContainer("test")],
+            velocity_to_sample_start=[0,0,0,0],
+            aux_out_offset=[1,2,3,4],
+            enable_key_tracking=[True,True,True,True]
+        )
+        keygroup_raw = KeygroupConstruct.build(keygroup)
+        self.assertEqual(len(keygroup_raw), 150)
+        return
+
+
+    def test_keygroup_parse_num_zones(self):
+        keygroup = KeygroupContainer(
+            velocity_zones=(VelocityZoneContainer("test"), VelocityZoneContainer("sec")),
+            velocity_to_sample_start=[0,0,0,0],
+            aux_out_offset=[1,2,3,4],
+            enable_key_tracking=[True,True,True,True],
+        )
+        keygroup_raw = KeygroupConstruct.build(keygroup)
+        keygroup_reparse = KeygroupConstruct.parse(keygroup_raw)
+        if keygroup_reparse is None:
+            self.fail()
+        self.assertEqual(len(keygroup_reparse.velocity_zones), 2)
+        return
+
+
+    def test_keygroup_build_raises_exception_when_too_many_zones(self):
+        keygroup = KeygroupContainer(
+            velocity_zones=[
+                VelocityZoneContainer("test"), 
+                VelocityZoneContainer("sec"),
+                VelocityZoneContainer("sec2"),
+                VelocityZoneContainer("sec3"),
+                VelocityZoneContainer("sec4"),
+            ],
+            velocity_to_sample_start=[0,0,0,0],
+            aux_out_offset=[1,2,3,4],
+            enable_key_tracking=[True,True,True,True]
+        )
+        self.assertRaises(
+            RangeError, 
+            lambda: KeygroupConstruct.build(keygroup)
+        )
+
 
 if __name__ == "__main__":
     try:
@@ -40,3 +94,4 @@ if __name__ == "__main__":
     except SystemExit as err:
         pass
     pass
+
