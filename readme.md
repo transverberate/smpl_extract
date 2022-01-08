@@ -1,6 +1,6 @@
 # smpl_extract
 
-A python library/tool for extracting programs and samples from AKAI S3000 images.
+A python library/tool for extracting programs and samples from AKAI SX000 images.
 
 ## Installation
 ### Prerequisites
@@ -124,6 +124,7 @@ A:                  AKAI Partition
 B:                  AKAI Partition
 C:                  AKAI Partition
 D:                  AKAI Partition
+
 ```
 
 #### Listing the volumes in a partition
@@ -142,11 +143,12 @@ Item                Type
 INSTANT INST        S1000 Volume
 SAWTOOTH SET        S1000 Volume
 BASS SET            S1000 Volume
+
 ```
 
 #### Listing the files in a volume
 Continuing with the `cool_samples.iso` example, suppose that the volume `A/SAWTOOTH SET` has nine 
-sample files. Listing the files within this volume is accomplished by calling the command
+sample files and one program patch. Listing the files within this volume is accomplished by calling the command
 
 ```
 python -m smpl_extract ls "./imgs/cool_samples.iso" "A/SAWTOOTH SET"
@@ -157,6 +159,7 @@ which prints the result
 ```
 Item                Type
 ----------------------------------------
+SAWSML -V  A        S1000 Program
 SAWSML 1S  L        S1000 Sample
 SAWSML 1S  R        S1000 Sample
 PHASE   14M         S1000 Sample
@@ -166,9 +169,10 @@ DISTR PH 1M         S1000 Sample
 144 CMB A  R        S1000 Sample
 CHSAW  1S  L        S1000 Sample
 CHSAW  1S  R        S1000 Sample
+
 ```
 
-#### Listing properties of a sample file
+#### Listing properties of a sample/program file
 Continuing with the `cool_samples.iso` example, listing the properties of the `A/SAWTOOTH 
 SET/SAWSML 1S  L` is accomplished by calling the command (take care to include the proper number of 
 spaces in the file/volume names)
@@ -180,19 +184,25 @@ python -m smpl_extract ls "./imgs/cool_samples.iso" "A/SAWTOOTH SET/SAWSML 1S  L
 which prints the result
 
 ```
-Sample
-----------------------------------------
-Name                SAWSML 1S  L
-Type                S1000 Sample
-Sample rate         48000 Hz
-Duration            3.595 sec
-Num. samples        172557
-Start sample        0
-End sample          172557
-Note                A3
-Pitch semitones     0
-Pitch cents         47
-Loop type           No loop
+SAWSML 1S  L  S1000 Sample
+--------------------------------------------------------------------------------
+name: SAWSML 1S  L
+sample_type: S1000 Sample
+sample_rate: 48000
+bytes_per_sample: 2
+start_sample: 0
+end_sample: 143943
+note_pitch: B5
+pitch_cents: 19.01960784313725
+pitch_semi: 1
+loop_type: Loop in release
+loop_entries:
+  loop_entries[0]:
+    loop_start: 107991
+    loop_end: 143943
+    loop_duration: 9999
+    repeat_forever: True
+
 ```
 
 ### Extracting AKAI samples as wav files
@@ -346,3 +356,18 @@ channel data.
 This tool-set is in active development and has only been rigorously tested in Windows 10. 
 If a bug is found, please report it as an issue. Feature requests are welcome, but there is no 
 guarantee I will be able to implement it.
+
+## Support Me
+`smpl_extract` is an open-source alternative for extracting audio samples from disk images.
+If you like the work I've contributed to this project, you can support me by buying me a coffee!
+
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/counselor.chip)
+
+## License
+Copyright (c) 2021-present Counselor Chip.
+`smpl_extract` is free and open-source software licensed under the [MIT License](/LICENSE).
+
+### Third Party Licenses
+ - [numpy](https://github.com/numpy/numpy/blob/main/LICENSE.txt)
+ - [construct](https://github.com/construct/construct/blob/master/LICENSE)
