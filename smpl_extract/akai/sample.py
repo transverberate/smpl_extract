@@ -132,8 +132,13 @@ SampleHeaderConstruct = Struct(
     "data_address"          / Tell,
     "data_stream"           / SubStreamConstruct(
                                 StreamOffset, 
-                                size=(AKAI_SAMPLE_WORDLENGTH * this.samples_cnt),
-                                offset=this.data_address
+                                size=(AKAI_SAMPLE_WORDLENGTH * \
+                                    (this.play_end - this.play_start)
+                                ),
+                                offset=(
+                                    this.data_address + (AKAI_SAMPLE_WORDLENGTH * \
+                                        this.play_start)
+                                )
                             )
 ).compile()
 
