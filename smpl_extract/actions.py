@@ -1,5 +1,7 @@
 
 import os, sys
+
+from smpl_extract.alcohol.mdx import is_mdx_image
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
@@ -21,6 +23,8 @@ from akai.image import InvalidPathStr
 from akai.data_types import FileType
 from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
+from alcohol.mdx import is_mdx_image
+from alcohol.mdx import MdxStream
 from util.dataclass import ItemT
 from wav.akai import WavAkaiSampleStruct
 
@@ -32,6 +36,8 @@ def _wrap_filestream(func: Callable):
             fstream = open(file, "rb")
             if is_mdf_image(fstream):
                 fstream = MdfStream(fstream)
+            elif is_mdx_image(fstream):
+                fstream = MdxStream(fstream)
             result = AkaiImage(fstream)
         else:
             result = file
