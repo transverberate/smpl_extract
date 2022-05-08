@@ -21,6 +21,7 @@ from .base import WavSampleChunkContainer
 from akai.data_types import AkaiLoopType
 from akai.sample import Sample
 from midi import MidiNote
+from util.stream import SectorReadError
 
 
 def get_fmt_chunk_data(channels: List[Sample])->WavFormatChunkContainer:
@@ -108,7 +109,12 @@ def wave_data_generator(
         for i, reader in enumerate(readers):
             if reader is None:
                 continue
-            buffer[i] = reader.read(BUFFER_SIZE)
+            try:
+                buffer[i] = reader.read(BUFFER_SIZE)
+            except SectorReadError:
+                # TODO: Create more robust handling for this
+                continue_flag = False
+                break
             if len(buffer[i]) < 1:
                 continue_flag = False
                 break

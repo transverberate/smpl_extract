@@ -10,6 +10,7 @@ from construct.core import Padding
 from construct.core import Int8ul
 from construct.core import Int16ul
 from construct.core import Int24ul
+from construct.core import StreamError
 from construct.core import Subconstruct
 from construct.lib.containers import Container
 from construct.expr import this
@@ -97,7 +98,10 @@ class FileEntriesAdapter(Subconstruct):
             original_address = stream_inner.tell()
 
             stream_inner.seek(8, SEEK_CUR)
-            end_flag = Int16ul.parse_stream(stream_inner)
+            try:
+                end_flag = Int16ul.parse_stream(stream_inner)
+            except (StreamError):
+                return True
 
             stream_inner.seek(original_address, SEEK_SET)
 
