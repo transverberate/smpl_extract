@@ -22,10 +22,6 @@ MDX_SECTOR_HEADER_MAGIC = (
     b"MEDIA\x20DESCRIPTOR"
 )
 
-def Q(obj_, path):
-    result = obj_[0] == b"\xA9"  # type: ignore
-    return result
-
 
 MdxHeaderConstruct = Struct(
     "magic" / Const(MDX_SECTOR_HEADER_MAGIC, Bytes(len(MDX_SECTOR_HEADER_MAGIC))),

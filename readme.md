@@ -52,8 +52,6 @@ in which you downloaded the repo and run the command (note the period!),
 python -m pip install .
 ```
 
-## Importing as a library 
-
 ## Usage as a toolset
 
 The smpl_extract toolset is provided as a command-line utility
