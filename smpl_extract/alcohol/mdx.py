@@ -36,7 +36,6 @@ MdxHeaderConstruct = Struct(
 )
 
 
-
 def is_mdx_image(stream: IOBase)->bool:
     stream_head = stream.tell()
     stream.seek(0, SEEK_SET)

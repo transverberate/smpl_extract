@@ -1,12 +1,11 @@
 
 import os, sys
-
-from smpl_extract.alcohol.mdx import is_mdx_image
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from dataclasses import dataclass
 from functools import wraps
+from io import BufferedReader
 import re
 from typing import Callable
 from typing import List
@@ -25,20 +24,73 @@ from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
 from alcohol.mdx import is_mdx_image
 from alcohol.mdx import MdxStream
+from cuesheet import BadCueFile
+from cuesheet import CueSheetAdapter
 from util.dataclass import ItemT
 from wav.akai import WavAkaiSampleStruct
+
+
+class BadTextFile(Exception): pass
+
+
+def parse_text_file(filename: str):
+    with open(filename, "r", encoding="ascii") as file:
+        try:
+            text = file.readlines()
+        except (UnicodeDecodeError) as e:
+            raise BadTextFile from e
+        return text
+
+
+def determine_image_type(file: Union[str, BufferedReader]):
+    if isinstance(file, str):
+        is_textfile = True
+        lines = []
+        try:
+            lines = parse_text_file(file)
+        except BadTextFile:
+            is_textfile = False
+
+        if is_textfile:
+            parent_directory = os.path.dirname(file)
+            try: 
+                result = parse_cue_sheet(lines, parent_directory)
+                return result
+            except BadCueFile:
+                pass
+
+        file_stream = open(file, "rb")
+    else:
+        file_stream = file
+
+    if is_mdf_image(file_stream):
+        file_stream = MdfStream(file_stream)
+    elif is_mdx_image(file_stream):
+        file_stream = MdxStream(file_stream)
+
+    result = AkaiImage(file_stream)
+    return result
+
+
+def parse_cue_sheet(lines: List[str], directory = ""):
+    cuesheet = CueSheetAdapter.parse(lines)[0]
+    binary_track = next(
+        (x for x in cuesheet.tracks if x.mode.lower() != "audio"),
+        None
+    )
+    if binary_track:
+        bin_file_path = os.path.join(directory, cuesheet.bin_file_name)
+        bin_file_stream = open(bin_file_path, "rb")
+        bin_image = determine_image_type(bin_file_stream)
+        return bin_image
+    raise BadCueFile
 
 
 def _wrap_filestream(func: Callable):
     @wraps(func)
     def inner(file: Union[str, AkaiImage], *args, **kwargs):
         if isinstance(file, str):
-            fstream = open(file, "rb")
-            if is_mdf_image(fstream):
-                fstream = MdfStream(fstream)
-            elif is_mdx_image(fstream):
-                fstream = MdxStream(fstream)
-            result = AkaiImage(fstream)
+            result = determine_image_type(file)
         else:
             result = file
         func(result, *args, **kwargs)
