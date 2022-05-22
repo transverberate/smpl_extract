@@ -24,6 +24,7 @@ from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
 from alcohol.mdx import is_mdx_image
 from alcohol.mdx import MdxStream
+from cdda.cdda import CompactDiskAudioImageAdapter
 from cuesheet import BadCueSheet
 from cuesheet import parse_cue_sheet
 from util.dataclass import ItemT
@@ -73,16 +74,25 @@ def determine_image_type(file: Union[str, BufferedReader]):
 
 
 def attempt_parse_cue_sheet(lines: List[str], directory = ""):
-    cue_sheet = parse_cue_sheet(lines)
+    cue_sheet_file = parse_cue_sheet(lines)
     binary_track = next(
-        (x for x in cue_sheet.tracks if x.mode.lower() != "audio"),
+        (x for x in cue_sheet_file.tracks if x.mode.lower() != "audio"),
         None
     )
     if binary_track:
-        bin_file_path = os.path.join(directory, cue_sheet.bin_file_name)
+        bin_file_path = os.path.join(directory, cue_sheet_file.bin_file_name)
         bin_file_stream = open(bin_file_path, "rb")
         bin_image = determine_image_type(bin_file_stream)
         return bin_image
+    
+    if all((x.mode.lower() == "audio" for x in cue_sheet_file.tracks)):
+        bin_file_path = os.path.join(directory, cue_sheet_file.bin_file_name)
+        bin_file_stream = open(bin_file_path, "rb")
+        image = CompactDiskAudioImageAdapter.from__bin_cue(
+            bin_file_stream,
+            cue_sheet_file
+        )
+        # return image
     
     raise BadCueSheet
 

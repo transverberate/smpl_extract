@@ -29,12 +29,19 @@ class CueItemAdapter(Protocol[T]):
     def parse(self, lines: List[str]) -> T: ...
 
 
+_AUDIO_FRAMES_PER_SECOND = 75
 @dataclass
 class CueSheetIndex:
     number: int = 0
     n_minutes: int = 0
     n_seconds: int = 0
     n_frames: int = 0
+
+    def get_total_audio_frames(self) -> int:
+        total_seconds = 60*self.n_minutes + self.n_seconds
+        total_frames = _AUDIO_FRAMES_PER_SECOND*total_seconds + \
+            self.n_frames
+        return total_frames
 
 
 @dataclass
@@ -48,7 +55,7 @@ class CueSheetTrack:
 
 _TRACK_LINE_REGEX = re.compile(r"\s*TRACK\s+(\d+)\s+([A-z\d\/]+)", flags=re.I)
 _TITLE_LINE_REGEX = re.compile(r"\s*TITLE\s+\"(.*?)\"", flags=re.I)
-_INDEX_LINE_REGEX = re.compile(r"\s*INDEX\s+(\d+)\s+(\d+):(\d+):(\d+)")
+_INDEX_LINE_REGEX = re.compile(r"\s*INDEX\s+(\d+)\s+(\d+):(\d+):(\d+)", flags=re.I)
 class CueSheetTrackAdapter:
     @classmethod
     def parse(cls, lines: List[str]):
