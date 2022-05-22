@@ -90,7 +90,7 @@ def attempt_parse_cue_sheet(lines: List[str], directory = ""):
     if all((x.mode.lower() == "audio" for x in cue_sheet_file.tracks)):
         bin_file_path = os.path.join(directory, cue_sheet_file.bin_file_name)
         bin_file_stream = open(bin_file_path, "rb")
-        image = CompactDiskAudioImageAdapter.from__bin_cue(
+        image = CompactDiskAudioImageAdapter.from_bin_cue(
             bin_file_stream,
             cue_sheet_file
         )

@@ -65,7 +65,7 @@ class CompactDiskAudioImage:
 class CompactDiskAudioImageAdapter:
 
     @classmethod
-    def from__bin_cue(
+    def from_bin_cue(
             cls, 
             bin_file_stream: IOBase,
             cue_file: CueSheetFile
