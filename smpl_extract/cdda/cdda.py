@@ -16,11 +16,11 @@ import util.dataclass
 from util.stream import StreamOffset
 
 
-_SAMPLE_WIDTH = 2
-_SAMPLING_RATE = 44100
-_N_CHANNELS = 2
-_SAMPLES_PER_FRAME = 588
-_BYTES_PER_FRAME = _SAMPLE_WIDTH * _N_CHANNELS * _SAMPLES_PER_FRAME
+SAMPLE_WIDTH = 2
+SAMPLING_RATE = 44100
+N_CHANNELS = 2
+SAMPLES_PER_FRAME = 588
+BYTES_PER_FRAME = SAMPLE_WIDTH * N_CHANNELS * SAMPLES_PER_FRAME
 
 
 @dataclass
@@ -95,8 +95,8 @@ class CompactDiskAudioImageAdapter:
                     next_index = next_cue_track.indices[0]
                     next_n_frames = next_index.get_total_audio_frames()
 
-                    offset_bytes = _BYTES_PER_FRAME*cur_n_frames
-                    size_bytes = _BYTES_PER_FRAME*(next_n_frames - cur_n_frames)
+                    offset_bytes = BYTES_PER_FRAME*cur_n_frames
+                    size_bytes = BYTES_PER_FRAME*(next_n_frames - cur_n_frames)
 
                     data_stream = StreamOffset(
                         bin_file_stream,
@@ -118,7 +118,7 @@ class CompactDiskAudioImageAdapter:
 
                 cur_index = cur_cue_track.indices[0]
                 cur_n_frames = cur_index.get_total_audio_frames()
-                offset_bytes = _BYTES_PER_FRAME*cur_n_frames
+                offset_bytes = BYTES_PER_FRAME*cur_n_frames
                 size_bytes = end_of_file - offset_bytes
 
                 data_stream = StreamOffset(

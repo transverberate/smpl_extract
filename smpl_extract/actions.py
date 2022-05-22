@@ -24,11 +24,13 @@ from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
 from alcohol.mdx import is_mdx_image
 from alcohol.mdx import MdxStream
+from cdda.cdda import CompactDiskAudioImage
 from cdda.cdda import CompactDiskAudioImageAdapter
 from cuesheet import BadCueSheet
 from cuesheet import parse_cue_sheet
 from util.dataclass import ItemT
 from wav.akai import WavAkaiSampleStruct
+from wav.cdda import WavCddaSampleStruct
 
 
 class BadTextFile(Exception): pass
@@ -92,7 +94,7 @@ def attempt_parse_cue_sheet(lines: List[str], directory = ""):
             bin_file_stream,
             cue_sheet_file
         )
-        # return image
+        return image
     
     raise BadCueSheet
 
@@ -311,6 +313,17 @@ _STEREO_FILENAME = re.compile(r"(.*?)([\s-]+)(L|R)\s*$")
 @_wrap_filestream
 def export_samples_to_wav(image: AkaiImage, base_dir: str):
 
+    if isinstance(image, CompactDiskAudioImage):
+        if not os.path.exists(base_dir):
+            os.makedirs(base_dir)
+        for track in image.tracks:
+            file_name = track.title + ".wav"
+            file_path = os.path.join(base_dir, file_name)
+            with open(file_path, "wb") as export_stream:
+                WavCddaSampleStruct.build_stream(track, export_stream)
+            print(f"Exported {file_name}")
+        return
+
     for partition_name, partition in image.children.items():
         for volume_name, volume in partition.children.items():
             neighboring_filenames = volume.children.keys()
@@ -347,4 +360,6 @@ def export_samples_to_wav(image: AkaiImage, base_dir: str):
                         path_levels[0] += ":"
                         full_path = "/".join(path_levels) + ".wav"
                         print(f"Exported {full_path}")
+
+    return
 
