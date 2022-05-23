@@ -22,6 +22,7 @@ from typing import Iterable
 
 from .akai_string import AkaiPaddedString
 from .data_types import AKAI_SAMPLE_WORDLENGTH
+from .data_types import DEFAULT_SAMPLE_RATE
 from .data_types import AkaiLoopType
 from .data_types import AkaiMidiNote
 from .data_types import AkaiTuneCents
@@ -173,11 +174,15 @@ class SampleAdapter(Adapter):
                 loop_duration = loop_entry.loop_duration
                 if loop_duration > 0:
                     loop_entries.append(loop_entry)
+        
+        sample_rate = sample_header.sampling_rate
+        if sample_rate == 0:
+            sample_rate = DEFAULT_SAMPLE_RATE
 
         result = Sample(
             sample_header.name,
             sample_header.id,
-            sample_header.sampling_rate,
+            sample_rate,
             AKAI_SAMPLE_WORDLENGTH,
             sample_header.samples_cnt,
             sample_header.play_start,

@@ -38,6 +38,8 @@ AKAI_VOLUME_ENTRY_CNT           = 100
 
 AKAI_AUX_OUTPUT_DISABLED        = 0xFF
 
+DEFAULT_SAMPLE_RATE = 44100
+
 
 class InvalidCharacter(Exception):
     pass

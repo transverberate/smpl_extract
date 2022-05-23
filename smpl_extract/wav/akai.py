@@ -48,16 +48,21 @@ def get_smpl_normalized_pitch(semi: int, cents: int)->Tuple[int, int]:
     return result
 
 
+_DEFAULT_SAMPLE_RATE = 44100
 def get_smpl_chunk_data(channels: List[Sample])->WavSampleChunkContainer:
-
+    
     master_channel = channels[0]
+    sample_rate = master_channel.sample_rate
+    if sample_rate == 0:
+        sample_rate = _DEFAULT_SAMPLE_RATE
+
     loop_headers = []
     if master_channel.loop_type != AkaiLoopType.LOOP_INACTIVE:
         for i, loop in enumerate(master_channel.loop_entries):
             play_cnt = 0
             if not loop.repeat_forever:
                 loop_duration = loop.loop_duration
-                loop_total_duration = (loop.loop_end - loop.loop_start)/master_channel.sample_rate
+                loop_total_duration = (loop.loop_end - loop.loop_start)/sample_rate
                 play_cnt = round(loop_duration/loop_total_duration)
             loop_headers.append(WavLoopContainer(
                 cue_id=i,
@@ -67,7 +72,7 @@ def get_smpl_chunk_data(channels: List[Sample])->WavSampleChunkContainer:
                 fraction=0,
                 play_cnt=play_cnt
             ))
-    sample_period_nano = (10**9)/master_channel.sample_rate
+    sample_period_nano = (10**9)/sample_rate
     note_pitch_offset, pitch_cents_normalized = get_smpl_normalized_pitch(
         master_channel.pitch_semi,
         master_channel.pitch_cents
