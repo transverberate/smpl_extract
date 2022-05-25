@@ -8,6 +8,7 @@ from typing import Dict
 from typing import Iterable
 from typing import OrderedDict
 from construct.core import Adapter
+from construct.core import Computed
 from construct.core import ConstructError
 from construct.core import Int16ul
 from construct.core import Struct
@@ -76,7 +77,8 @@ class VolumeBodyContainer(Container):
 
 VolumeEntryConstruct = Struct(
     "name" / AkaiPaddedString(12),
-    "type" / EnumWrapper(Int16ul, VolumeType),
+    "type_raw" / Int16ul,
+    "type" / EnumWrapper(Computed(this.type_raw & 0xFF), VolumeType),
     "start" / Int16ul
 ).compile()
 @dataclass
