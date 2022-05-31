@@ -63,6 +63,8 @@ def get_smpl_chunk_data(channels: List[Sample])->WavSampleChunkContainer:
             if not loop.repeat_forever:
                 loop_duration = loop.loop_duration
                 loop_total_duration = (loop.loop_end - loop.loop_start)/sample_rate
+                if loop_total_duration == 0: 
+                    continue
                 play_cnt = round(loop_duration/loop_total_duration)
             loop_headers.append(WavLoopContainer(
                 cue_id=i,
