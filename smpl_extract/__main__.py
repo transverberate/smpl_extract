@@ -31,10 +31,10 @@ def construct_common_parser(
         "image_file",       
         type=parse_file_string,
         help=(
-            "The path to the file containing the AKAI "
-            "image on your operating system - either "
-            "absolute or relative to the current working "
-            "directory."
+                "The path to the file containing the disc "
+                "image on your operating system - either "
+                "absolute or relative to the current working "
+                "directory."
         )
     )
     return arg_parser
@@ -48,11 +48,16 @@ def ls_parse_args(argv):
         default="", 
         nargs="?",
         help=(
-            "The path within the AKAI image containing the "
-            "contents to be listed. This path has the form "
-            "\"<partition>/<volume>/<file>\". If this path "
-            "is empty, the partitions in the AKAI image are "
-            "listed."
+                "The path within the disc image. "
+                "This path has the form \"<dir1>/<dir2>/<file>\". "
+                "If this path is a file (i.e., a sample, "
+                "patch, etc.), the information available for "
+                "that file will be displayed as plain-text. "
+                "If this path is a directory (e.g., "
+                "partitions/volumes in an AKAI image, etc.), "
+                "the contents of that directory will be listed. "
+                "If this path is empty, the root entries of the disk "
+                "(e.g., the tracks of a CDDA bin/cue) will be listed."
         )
     )
 
@@ -79,8 +84,8 @@ def export_parse_args(argv):
         default="wav",
         help=(
                 "The output format of the extracted samples. "
-                "Currently only accepts `wav`. " 
-                "The default output format is `wav`."
+                "Currently only accepts wav. " 
+                "The default output format is wav."
         )
     )
     arg_parser.add_argument(
@@ -91,7 +96,7 @@ def export_parse_args(argv):
         help=(
             "The samples will be exported in "
             "a directory structure which mirrors the structure "
-            "of the AKAI image. The default is the current "
+            "of the disc image. The default is the current "
             "working directory."
         )
     )
