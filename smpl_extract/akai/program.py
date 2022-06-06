@@ -1,6 +1,4 @@
 import os, sys
-
-from smpl_extract.util.dataclass import itemizable
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
@@ -38,6 +36,7 @@ from midi import MidiNote
 from util.constructs import BoolConstruct
 from util.constructs import EnumWrapper
 from util.constructs import MappingDefault
+from util.dataclass import make_itemizable
 
 
 @dataclass
@@ -258,7 +257,7 @@ class ProgramContainer:
     keygroups:  Sequence[Keygroup]      = field(default_factory=Sequence[Keygroup])
 
 
-@itemizable
+@make_itemizable
 @dataclass
 class Program(ProgramHeaderCommon):
     keygroups:  Sequence[Keygroup]      = field(default_factory=Sequence[Keygroup])

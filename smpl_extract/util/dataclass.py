@@ -1,8 +1,13 @@
+import os, sys
+_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+
 from collections.abc import Iterable
 from dataclasses import fields
 from dataclasses import is_dataclass
 import functools
-from typing import Any
+from typing import Any 
+from typing import Protocol
 from typing import cast
 from typing import Dict
 from typing import Mapping
@@ -12,7 +17,15 @@ from typing import Union
 
 
 ItemT = Union[Mapping[str, 'ItemT'], Tuple['ItemT', ...], str]
+
+
+class Itemizable(Protocol):
+    def itemize(self) -> ItemT: ...
+
+
 def itemize(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
+
+
     def process_value(value)->Union[str, ItemT]:
         result: Union[str, ItemT]
         if hasattr(value, "itemize"):
@@ -38,8 +51,8 @@ def itemize(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
     return result
 
 
-def itemizable(cls):  # decorator 
-    if  hasattr(cls, "itemize"):
+def make_itemizable(cls):  # decorator 
+    if hasattr(cls, "itemize"):
         return cls
 
     func = itemize
@@ -48,7 +61,7 @@ def itemizable(cls):  # decorator
 
         @functools.wraps(itemize)
         def itemize_dataclass(self):
-            result = itemize((self))
+            result = itemize(self)
             return result
 
         func = itemize_dataclass

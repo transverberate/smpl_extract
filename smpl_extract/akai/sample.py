@@ -31,11 +31,11 @@ from midi import MidiNote
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
 from util.constructs import EnumWrapper
-from util.dataclass import itemizable
+from util.dataclass import make_itemizable
 import util.dataclass
 
 
-@itemizable
+@make_itemizable
 @dataclass
 class LoopEntry:
     loop_start: int

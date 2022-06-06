@@ -2,6 +2,7 @@ import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
 from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
@@ -32,7 +33,7 @@ from util.constructs import MappingDefault
 from util.constructs import PaddedGeneral
 from util.constructs import sanitize_container
 from util.constructs import SlicingGeneral
-from util.dataclass import itemizable
+from util.dataclass import make_itemizable
 
 
 # Has a *different* mapping than the loop_mode_stored in samples
@@ -217,7 +218,7 @@ KeygroupConstruct = Struct(
 )
 
 
-@itemizable
+@make_itemizable
 @dataclass
 class VelocityZone(VelocityZoneCommon):
     enable_key_tracking:        bool    = True
@@ -225,7 +226,7 @@ class VelocityZone(VelocityZoneCommon):
     velocity_to_sample_start:   int     = 0
 
 
-@itemizable
+@make_itemizable
 @dataclass
 class Keygroup(KeygroupCommon):
     velocity_zones: Sequence[VelocityZone] = field(default=(VelocityZone(), ))
