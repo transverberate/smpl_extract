@@ -2,17 +2,22 @@ import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
-from akai.image import InvalidPathStr
 from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 from io import IOBase
 from io import SEEK_END
 from io import SEEK_SET
+from typing import ClassVar
 from typing import List
+from typing import Optional
 
+from base import Element
 from cuesheet import CueSheetFile
+from elements import SampleElement
+from elements import Traversable
 import util.dataclass
+from util.dataclass import is_public_field
 from util.stream import StreamOffset
 
 
@@ -24,42 +29,43 @@ BYTES_PER_FRAME = SAMPLE_WIDTH * N_CHANNELS * SAMPLES_PER_FRAME
 
 
 @dataclass
-class AudioTrack:
+class AudioTrack(SampleElement):
     title: str = ""
     data_stream: IOBase = field(default_factory=IOBase)
+    num_channels:       int = 2
+    sample_rate:        int = 44100
+    bytes_per_sample:   int = 2
+    num_audio_samples:  int = 0
+    _parent:            Optional[Element] = None
+    _path:              List[str] = field(default_factory=list)
+
+    type_name: ClassVar[str] = "CDDA Track"
 
     @property
     def name(self):
         return self.title
 
-    @property
-    def type(self):
-        return "CD Audio Track"
-
     def itemize(self):
         items = {
             k.name: getattr(self, k.name) 
             for k in fields(self) if k.name != "data_stream"
+                and is_public_field(k.name)
         }
         result = util.dataclass.itemize(items)
         return result
 
 
 @dataclass
-class CompactDiskAudioImage:
+class CompactDiskAudioImage(Traversable):
     tracks: List[AudioTrack] = field(default_factory=list)
+    _path: ClassVar[List[str]] = []
+    _parent: ClassVar[Optional[Element]] = None
+    name: ClassVar[str] = "CDDA Image"
+    type_name: ClassVar[str] = "CDDA Image"
 
     @property
     def children(self):
-        tracks_dict = {
-            x.title: x for x in self.tracks
-        }
-        return tracks_dict
-
-    def get_node_from_path(self, path: str):
-        if len(path.strip()):
-            raise InvalidPathStr("Paths strings not valid for CD Audio Images")
-        return self
+        return self.tracks
 
 
 class CompactDiskAudioImageAdapter:
@@ -70,6 +76,9 @@ class CompactDiskAudioImageAdapter:
             bin_file_stream: IOBase,
             cue_file: CueSheetFile
     ):
+        image = CompactDiskAudioImage()
+        element_path = image.path
+
         bin_file_stream.seek(0, SEEK_END)
         end_of_file = bin_file_stream.tell()
         bin_file_stream.seek(0, SEEK_SET)
@@ -94,9 +103,12 @@ class CompactDiskAudioImageAdapter:
                     cur_n_frames = cur_index.get_total_audio_frames()
                     next_index = next_cue_track.indices[0]
                     next_n_frames = next_index.get_total_audio_frames()
+                    total_n_frames = next_n_frames - cur_n_frames
 
                     offset_bytes = BYTES_PER_FRAME*cur_n_frames
-                    size_bytes = BYTES_PER_FRAME*(next_n_frames - cur_n_frames)
+                    size_bytes = BYTES_PER_FRAME*total_n_frames
+
+                    total_num_samples = SAMPLES_PER_FRAME*total_n_frames
 
                     data_stream = StreamOffset(
                         bin_file_stream,
@@ -104,9 +116,14 @@ class CompactDiskAudioImageAdapter:
                         offset_bytes
                     )
 
+                    track_path = element_path + [title]
+
                     audio_track = AudioTrack(
                         title,
-                        data_stream
+                        data_stream,
+                        num_audio_samples=total_num_samples,
+                        _parent=image,
+                        _path=track_path
                     )
                     audio_tracks.append(audio_track)
                     
@@ -121,18 +138,26 @@ class CompactDiskAudioImageAdapter:
                 offset_bytes = BYTES_PER_FRAME*cur_n_frames
                 size_bytes = end_of_file - offset_bytes
 
+                total_n_frames = (size_bytes // BYTES_PER_FRAME)
+                total_num_samples = SAMPLES_PER_FRAME*total_n_frames
+
                 data_stream = StreamOffset(
                         bin_file_stream,
                         size_bytes,
                         offset_bytes
                     )
 
+                track_path = element_path + [title]
+
                 audio_track = AudioTrack(
                     title,
-                    data_stream
+                    data_stream,
+                    num_audio_samples=total_num_samples,
+                    _parent=image,
+                    _path=track_path
                 )
                 audio_tracks.append(audio_track)
 
-        result = CompactDiskAudioImage(audio_tracks)
-        return result
+        image.tracks = audio_tracks
+        return image
 

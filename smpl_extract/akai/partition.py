@@ -2,7 +2,7 @@ import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-from typing import Callable
+from typing import Callable, List, Optional
 from typing import OrderedDict
 from construct.core import Bytes
 from construct.core import ConstructError
@@ -17,11 +17,13 @@ from construct.core import Computed
 from construct.core import Tell
 from construct.expr import this
 
+from base import Element
 from .data_types import AKAI_PARTITION_MAGIC
 from .data_types import  AKAI_SAT_ENTRY_CNT
 from .data_types import AKAI_SECTOR_SIZE
 from .data_types import AKAI_VOLUME_ENTRY_CNT
 from .data_types import InvalidCharacter
+from elements import Traversable
 from .sat import SegmentAllocationTable
 from .sat import SegmentAllocationTableAdapter
 from .volume import Volume
@@ -35,21 +37,25 @@ class InvalidPartition(Exception):
     pass
 
 
-class Partition:
+class Partition(Traversable):
 
 
     def __init__(
             self,
             f_sat: Callable[[], SegmentAllocationTable],
             f_volumes: Callable[[], OrderedDict[str, Volume]],
-            name: str = ""
+            name: str,
+            parent: Optional[Element] = None,
+            path: Optional[List[str]] = None
     ) -> None:
         self._f_sat = f_sat
         self._sat = None
         self._f_volumes = f_volumes
         self._volumes = None
         self.name = name
-        self.type = "Partition"
+        self.type_name = "Partition"
+        self._parent = parent
+        self._path = path or []
 
     
     @property
@@ -87,12 +93,20 @@ class PartitionConstructAdapter(Subconstruct):
             raise ConstructError
 
         partition_name = context["name"]
+        if len(partition_name) > 0 and partition_name[-1] != ":":
+            partition_name = partition_name + ":"
+        parent: Element = context["parent"]
+        element_path = parent.path + [partition_name]
 
         partition = Partition(
             partition_container.sat,
             partition_container.volumes,
-            partition_name
+            partition_name,
+            parent,
+            element_path
         )
+
+        context.parent = partition
         
         return partition
 
@@ -117,7 +131,6 @@ PartitionHeaderConstruct = Struct(
     Rebuild(Int8ul, lambda this: this.check_sum_x//2 + 0xBA),
     Const(b"\x2F\x00"),
 )
-
 
 
 PartitionConstruct = PartitionConstructAdapter(

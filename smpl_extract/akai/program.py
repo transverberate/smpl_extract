@@ -20,15 +20,19 @@ from construct.lib.containers import Container
 from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
+from typing import List
+from typing import Optional
 from typing import Sequence
 
 from .akai_string import AkaiPaddedString
+from base import Element
 from .data_types import AkaiAuxOutput
 from .data_types import AkaiMidiNote
 from .data_types import AkaiMidiOutput
 from .data_types import AkaiTuneCents
 from .data_types import AkaiVoiceReassign
 from .data_types import AkaiProgramPriority
+from elements import ProgramElement
 from .keygroup import Keygroup
 from .keygroup import KeygroupAdapter
 from .keygroup import KeygroupConstruct
@@ -259,8 +263,22 @@ class ProgramContainer:
 
 @make_itemizable
 @dataclass
-class Program(ProgramHeaderCommon):
+class Program(ProgramHeaderCommon, ProgramElement):
     keygroups:  Sequence[Keygroup]      = field(default_factory=Sequence[Keygroup])
+    file_name:  str                     = ""
+    type_name:  str                     = ""
+    _parent:    Optional[Element]       = None
+    _path:      List[str]               = field(default_factory=list)
+
+    @property
+    def name(self) -> str:
+        result = self.file_name
+        return result
+
+    # needed to stop unimplemented abstract method exception
+    # will be added by @make_itemizable
+    def itemize(self):
+        return None
 
 
 class ProgramAdapter(Adapter):
@@ -269,13 +287,31 @@ class ProgramAdapter(Adapter):
         raise NotImplementedError
 
     def _decode(self, obj: ProgramContainer, context, path)->Program:
-        del context, path  # Unused
+        del path  # Unused
         header_args = {
             k.name: obj.header[k.name] for k in fields(ProgramHeaderCommon)
         }
-        result = Program(**header_args, keygroups=obj.keygroups)
-        return result
 
+        file_name = context.get("name", obj.header.program_name)
+        type_name = str(context.get("type", "AKAI Program"))
+        if "parent" in context.keys():
+            parent = context.parent
+            element_path = parent.path
+        else:
+            parent = None
+            element_path = []
+            
+        program_path = element_path + [file_name]
+
+        result = Program(
+            **header_args, 
+            keygroups=obj.keygroups, 
+            file_name=file_name,
+            type_name=type_name,
+            _parent=parent,
+            _path=program_path
+        )
+        return result
 
 
 ProgramConstruct = ProgramAdapter(Struct(

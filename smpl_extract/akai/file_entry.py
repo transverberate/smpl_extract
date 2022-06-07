@@ -18,19 +18,20 @@ from dataclasses import dataclass
 from io import SEEK_CUR
 from io import SEEK_END
 from io import SEEK_SET
-from typing import Callable
+from typing import Callable, Optional, cast
 from typing import Iterable
 from typing import List
 from typing import Union
 
 from .akai_string import AkaiPaddedString
+from base import Element
 from .data_types import FILE_TABLE_END_FLAG
 from .data_types import FileType
 from .file import FileAdapter
 from .file import FileConstruct
 from .sat import RequestedInvalidSector
-from smpl_extract.util.stream import StreamWrapper
-from smpl_extract.util.constructs import EnumWrapper
+from util.stream import StreamWrapper
+from util.constructs import EnumWrapper
 
 
 class InvalidFileEntry(Exception):
@@ -56,11 +57,6 @@ class FileEntry:
         if not self._file:
             self._file = self._f_file_content()
         return self._file
-
-    
-    @property
-    def type(self):
-        return str(self.file_type)
 
 
 FileEntryConstruct = Struct(
@@ -109,6 +105,9 @@ class FileEntriesAdapter(Subconstruct):
             return result
 
         sat = self.sat(context) if callable(self.sat) else self.sat
+        parent: Optional[Element] = None
+        if "_" in context.keys() and "parent" in context._.keys():
+            parent = cast(Element, context._.parent)
 
         # read file entries containers
         stream.seek(0, SEEK_END)
@@ -127,15 +126,18 @@ class FileEntriesAdapter(Subconstruct):
                 file_entry_container = self.subcon.parse_stream(stream, _=context, sat=sat)
             except (ConstructError, RequestedInvalidSector):
                 pass
+
             if file_entry_container is not None and file_entry_container.start > 0:
-                
+                name = file_entry_container.name
                 file_content = Lazy(FileAdapter(
                         this._.sat,
                         FileConstruct
                     )).parse_stream(
                         file_entry_container.file_stream,  # type: ignore
                         _=context,
-                        file_type=file_entry_container.file_type
+                        type=file_entry_container.file_type,
+                        name=name,
+                        parent=parent
                     )
 
                 if file_content is None:

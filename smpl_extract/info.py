@@ -4,10 +4,12 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from dataclasses import dataclass
 from io import StringIO
+from typing import List
 from typing import Mapping
 from typing import Sequence
 from typing import Tuple
-from datatypes import Printable
+
+from base import Printable
 from util.dataclass import ItemT
 
 
@@ -17,7 +19,7 @@ class InfoTable(Printable):
     def __init__(
             self,
             header: Tuple[str, ...],
-            rows: Sequence[Tuple[str, ...]],
+            rows: List[Tuple[str, ...]],
             column_width = 20,
             column_delimiter = " "
     ) -> None:
@@ -33,7 +35,8 @@ class InfoTable(Printable):
         # calc total number of columns and the widths of each
         num_columns = 0
         column_widths: Mapping[int, int] = {}
-        for row in self.rows:
+        rows = self.rows + [self.header]
+        for row in rows:
             for i, column_value in enumerate(row):
                 # total number of cols
                 if i + 1 > num_columns:
@@ -61,11 +64,10 @@ class InfoTable(Printable):
 
 
         # print the table
-        str_buffer.write(make_line(self.header))  # header
-        str_buffer.write("-" * total_width)  # divider
+        str_buffer.write(make_line(self.header) + "\n")  # header
+        str_buffer.write(("-" * total_width) + "\n")  # divider
         for row in self.rows:
-            str_buffer.write(make_line(row))
-        str_buffer.write("")
+            str_buffer.write(make_line(row) + "\n")
 
         result = str_buffer.getvalue()
         return result
@@ -144,20 +146,19 @@ class InfoTree(Printable):
         # print tree
         for i, row in enumerate(row_entries):
             if i > self.max_rows:
-                str_buffer.write("")
-                str_buffer.write(f"(...) exceeded {self.max_rows} lines")
+                str_buffer.write("\n")
+                str_buffer.write(f"(...) exceeded {self.max_rows} lines\n")
                 break
             if row.is_divider:
                 result = "-" * self.total_width
-                str_buffer.write(result)
+                str_buffer.write(result + "\n")
                 continue
             
             column_values = ((" ", ) * row.depth) + row.content 
             result = self.delimiter.join(column_values)
             if len(result) > self.total_width:
                 result = result[0:self.total_width-3] + "..." 
-            str_buffer.write(result)
-        str_buffer.write("")
+            str_buffer.write(result + "\n")
         
         result = str_buffer.getvalue()
         return result

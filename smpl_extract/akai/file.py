@@ -43,7 +43,10 @@ class FileAdapter(Subconstruct):
     def _parse(self, stream, context, path):
         del path  # Unused
         try:
-            file = FileConstruct.parse_stream(stream, type=context.file_type)
+            file = FileConstruct.parse_stream(
+                stream, 
+                **context
+            )
         except (RequestedInvalidSector, InvalidCharacter) as e:
             raise ConstructError from e
 

@@ -23,27 +23,32 @@ class Itemizable(Protocol):
     def itemize(self) -> ItemT: ...
 
 
-def itemize(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
+def is_public_field(item: str) -> bool:
+    if len(item) > 0 and item[0] == "_":
+        return False
+    return True
 
 
-    def process_value(value)->Union[str, ItemT]:
-        result: Union[str, ItemT]
-        if hasattr(value, "itemize"):
-            result = cast(ItemT, value.itemize())
-        elif not isinstance(value, str) and isinstance(value, Iterable):
-            result = itemize(value)  # type: ignore
-        else:
-            result = str(value)
-            return result
-        
+def process_value(value)->Union[str, ItemT]:
+    result: Union[str, ItemT]
+    if hasattr(value, "itemize"):
+        result = cast(ItemT, value.itemize())
+    elif not isinstance(value, str) and isinstance(value, Iterable):
+        result = itemize(value)  # type: ignore
+    else:
+        result = str(value)
         return result
+    
+    return result
 
+
+def itemize(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
     if isinstance(self, dict):
         result = {k: process_value(v) for k, v in self.items()}
     elif is_dataclass(self):
         result = {
             k.name: process_value(getattr(self, k.name)) 
-            for k in fields(self)
+            for k in fields(self) if is_public_field(k.name)
         }
     else:
         result = tuple(process_value(v) for v in self)
@@ -52,9 +57,7 @@ def itemize(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
 
 
 def make_itemizable(cls):  # decorator 
-    if hasattr(cls, "itemize"):
-        return cls
-
+    
     func = itemize
 
     if is_dataclass(cls):

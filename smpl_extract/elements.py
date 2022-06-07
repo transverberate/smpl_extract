@@ -10,9 +10,9 @@ from typing import Optional
 from typing import Tuple
 from typing import cast
 
-from datatypes import Element
-from datatypes import ElementTypes
-from datatypes import Printable
+from base import Element
+from base import ElementTypes
+from base import Printable
 from info import InfoTable
 from info import InfoTree
 from util.dataclass import ItemT
@@ -23,21 +23,40 @@ class ErrorNotTraversable(Exception): ...
 class ErrorInvalidPath(Exception): ...
 
 
-class Traversable(Element, metaclass=ABCMeta):
+class LeafElement(Element, metaclass=ABCMeta):
 
+    @abstractmethod
+    def itemize(self) -> ItemT: ...
+
+    def get_info(self) -> Printable:
+        header = (self.name, " "*2, self.type_name)
+        items = self.itemize()
+        result = InfoTree(header, items)
+        return result
+
+
+class SampleElement(LeafElement):
+    type_id = ElementTypes.SampleEntry
+
+
+class ProgramElement(LeafElement):
+    type_id = ElementTypes.ProgramEntry
+
+
+class Traversable(Element):
 
     children: List[Element]
-    type_id = ElementTypes.DirectoryEntry
-    
+    type_id = ElementTypes.DirectoryEntry    
+
 
     def __init__(
             self,
-            name: Optional[str] = None,
+            type_name: Optional[str] = None,
             path: Optional[List[str]] = None, 
             parent: Optional[Element] = None
     ) -> None:
-        if name:
-            self.name = name
+        if type_name:
+            self.type_name = type_name
         self.children = list()
         super().__init__(path, parent)
 
@@ -46,7 +65,8 @@ class Traversable(Element, metaclass=ABCMeta):
         entries: List[Tuple[str, ...]] = []
         for child in self.children:
             name = child.name
-            entries.append((name, child.type_name))
+            type_name = child.type_name
+            entries.append((name, type_name))
         
         result = InfoTable(
             ("Item", "Type"),
@@ -55,7 +75,12 @@ class Traversable(Element, metaclass=ABCMeta):
         return result
 
 
-    _TOKENIZE_PATH_REGEX = re.compile(r"\:?(\\{1,2}|\/)")
+    def _sanitize_string(self, input_str: str):
+        result = input_str
+        return result
+
+
+    _TOKENIZE_PATH_REGEX = re.compile(r"(\\{1,2}|\/)")
     def parse_path(self, path) -> Element:
         tokens_raw = self._TOKENIZE_PATH_REGEX.split(path.strip())
         tokens_raw_iter = iter(tokens_raw)
@@ -75,13 +100,16 @@ class Traversable(Element, metaclass=ABCMeta):
 
         current_node = self
         for i, token in enumerate(tokens):
-            token_upper = token.upper()
+            token_upper = self._sanitize_string(token)
 
             try:
                 if isinstance(current_node, Traversable):
                     current_node = cast(Traversable, current_node)
                     children = current_node.children
-                    child = next((x for x in children if x.name.upper() == token_upper))
+                    child = next((
+                        x for x in children 
+                        if self._sanitize_string(x.name) == token_upper
+                    ))
                     if not child:
                         raise ErrorNoChildWithName()
                     current_node = child
@@ -89,7 +117,7 @@ class Traversable(Element, metaclass=ABCMeta):
                 else:
                     raise ErrorNotTraversable
 
-            except (ErrorNoChildWithName):
+            except (ErrorNoChildWithName, ErrorNotTraversable, StopIteration):
                 path_so_far = "/".join(tokens[:i]) + "/" if current_node != self else "image"
                 msg = f"The entity \"{token}\" was not found in \"{path_so_far}\"."
                 raise ErrorInvalidPath(msg)
@@ -97,20 +125,15 @@ class Traversable(Element, metaclass=ABCMeta):
         return current_node
 
     
-    @abstractmethod
-    def get_samples(self): ...
-
-
-class LeafElement(Element, metaclass=ABCMeta):
-
-
-    @abstractmethod
-    def itemize(self) -> ItemT: ...
-
-
-    def get_info(self) -> Printable:
-        header = (self.name, " "*2, self.type_name)
-        items = self.itemize()
-        result = InfoTree(header, items)
-        return result
+    def get_samples(self) -> List[SampleElement]: 
+        samples: List[SampleElement] = []
+        for child in self.children:
+            if child.type_id == ElementTypes.SampleEntry:
+                child = cast(SampleElement, child)
+                samples.append(child)
+            elif isinstance(child, Traversable):
+                res = child.get_samples()
+                samples += res
+        
+        return samples
 

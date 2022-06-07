@@ -1,25 +1,20 @@
 
 import os, sys
+
+from smpl_extract.base import ElementTypes
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
-from dataclasses import dataclass
 from functools import wraps
 from io import BufferedReader
 import re
-from typing import Callable
+from typing import Callable 
+from typing import cast
 from typing import List
-from typing import Mapping
-from typing import Tuple
 from typing import Union
-from typing import Sequence
 
-from akai.partition import Partition
-from akai.file_entry import FileEntry
 from akai.sample import Sample
 from akai.image import AkaiImage
-from akai.image import InvalidPathStr
-from akai.data_types import FileType
 from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
 from alcohol.mdx import is_mdx_image
@@ -28,7 +23,8 @@ from cdda.cdda import CompactDiskAudioImage
 from cdda.cdda import CompactDiskAudioImageAdapter
 from cuesheet import BadCueSheet
 from cuesheet import parse_cue_sheet
-from util.dataclass import ItemT
+from elements import ErrorInvalidPath
+from elements import Traversable
 from wav.akai import WavAkaiSampleStruct
 from wav.cdda import WavCddaSampleStruct
 
@@ -101,7 +97,7 @@ def attempt_parse_cue_sheet(lines: List[str], directory = ""):
 
 def _wrap_filestream(func: Callable):
     @wraps(func)
-    def inner(file: Union[str, AkaiImage], *args, **kwargs):
+    def inner(file: Union[str, Traversable], *args, **kwargs):
         if isinstance(file, str):
             result = determine_image_type(file)
         else:
@@ -111,146 +107,16 @@ def _wrap_filestream(func: Callable):
 
 
 @_wrap_filestream
-def ls_action(image: AkaiImage, path: str):
+def ls_action(image: Traversable, path: str):
     try:
-        item = image.get_node_from_path(path)
-    except InvalidPathStr as e:
+        item = image.parse_path(path)
+    except ErrorInvalidPath as e:
         print(e)
         return
 
-    if isinstance(item, FileEntry):
-        file = item.file
-        if hasattr(file, "itemize"):
-            result = file.itemize()
-            print_tree((item.name, " "*2, item.type), result)
-            return  # exit
-
-    entries: Sequence[Tuple[str, ...]] = []
-    
-    if hasattr(item, "children"):
-        for child in item.children.values():
-            name = child.name
-            if isinstance(child, Partition):
-                name = name + ":"
-            entries.append((name, child.type))
-
-    if len(entries) < 1:
-        print("(*empty*)")
-        return  # exit
-
-    # print table
-    print_table(("Item", "Type"), entries)
-    return
-
-
-_TABLE_COLUMN_WIDTH = 20
-_TABLE_COLUMN_DELIMITER = " "
-def print_table(header: Tuple[str, ...], items: Sequence[Tuple[str, ...]]):
-    # calc total number of columns and the widths of each
-    num_columns = 0
-    column_widths: Mapping[int, int] = {}
-    for row in items:
-        for i, column_value in enumerate(row):
-            # total number of cols
-            if i + 1 > num_columns:
-                num_columns = i + 1
-            # width of ith column
-            width = len(column_value)
-            if i not in column_widths.keys():
-                column_widths[i] = max(width, _TABLE_COLUMN_WIDTH)
-            elif width > column_widths[i]:
-                column_widths[i] = width
-    
-    # total width is sum of column widths and the number of delimiters
-    total_width = sum(column_widths.values()) + num_columns - 1
-    
-    def make_line(
-            row: Tuple[str, ...], 
-            column_widths: Mapping[int, int] = column_widths
-    )->str:
-        result = _TABLE_COLUMN_DELIMITER.join(map(
-            lambda i: row[i].ljust(column_widths[i]), 
-            range(len(row))
-        ))
-        return result
-
-    # print the table
-    print(make_line(header))  # header
-    print("-" * total_width)  # divider
-    for row in items:
-        print(make_line(row))
-    print()
-    return
-
-
-_TREE_TOTAL_WIDTH   = 80
-_TREE_DELIMITER     = " "
-_TREE_MAX_ROWS      = 300
-def print_tree(header: Tuple[str, ...], items: ItemT):
-
-
-    @dataclass
-    class RowEntry:
-        content: Tuple[str, ...] = ("", )
-        depth: int = 0
-        is_divider: bool = False
-
-
-    row_entries: Sequence[RowEntry] = []
-
-
-    def build_inner(item, depth=0, prev_key="", row_entries=row_entries):
-
-        if isinstance(item, Sequence) or isinstance(item, Mapping):
-
-            if isinstance(item, Sequence):
-                kv_pair = (
-                    ("".join((prev_key, f"[{str(i)}]")), value)
-                    for i,value in enumerate(item)
-                )
-            else:
-                kv_pair = item.items()
-
-            for key, value in kv_pair:
-                    content = [f"{key}:"]
-                    if isinstance(value, str):
-                        content.append(str(value))
-                    elif len(value) == 0:
-                        content.append("None")
-                    row_entries.append(RowEntry(tuple(content), depth))
-                    # expand value
-                    if not isinstance(value, str):
-                        build_inner(
-                            value, 
-                            depth=(depth + 1), 
-                            prev_key=key, 
-                            row_entries=row_entries
-                        )
-
-
-    row_entries.append(RowEntry(tuple(header)))
-    row_entries.append(RowEntry(is_divider=True))  # divider
-    build_inner(items)  # fill row_entries
-
-    # print tree
-    for i, row in enumerate(row_entries):
-        if i > _TREE_MAX_ROWS:
-            print()
-            print(f"(...) exceeded {_TREE_MAX_ROWS} lines")
-            break
-        if row.is_divider:
-            result = "-" * _TREE_TOTAL_WIDTH
-            print(result)
-            continue
-        
-        column_values = ((' ', ) * row.depth) + row.content 
-        result = _TREE_DELIMITER.join(column_values)
-        if len(result) > _TREE_TOTAL_WIDTH:
-            result = result[0:_TREE_TOTAL_WIDTH-3] + "..." 
-        print(result)
-    print()
-    
-    return
+    info = item.get_info()
+    result_str = info.to_string()
+    print(result_str)
 
 
 @_wrap_filestream
@@ -277,7 +143,8 @@ class ExportEntry:
 
     
     def sanitize_name(self, name: str)->str:
-        match = _SAFE_ENDING.match(name)
+        result = name.replace(":", "")
+        match = _SAFE_ENDING.match(result)
         if not match:
             raise Exception(f"Invalid name {name}")
         result = match.group(1)
@@ -311,7 +178,7 @@ class ExportEntry:
 
 _STEREO_FILENAME = re.compile(r"(.*?)([\s-]+)(L|R)\s*$")
 @_wrap_filestream
-def export_samples_to_wav(image: AkaiImage, base_dir: str):
+def export_samples_to_wav(image: Traversable, base_dir: str):
 
     if isinstance(image, CompactDiskAudioImage):
         if not os.path.exists(base_dir):
@@ -324,17 +191,23 @@ def export_samples_to_wav(image: AkaiImage, base_dir: str):
             print(f"Exported {file_name}")
         return
 
-    for partition_name, partition in image.children.items():
-        for volume_name, volume in partition.children.items():
-            neighboring_filenames = volume.children.keys()
+    kv_partition = {x.name: x for x in image.children}
+    for partition_name, partition in kv_partition.items():
+        partition = cast(Traversable, partition)
+        kv_volume = {x.name: x for x in partition.children}
+        
+        for volume_name, volume in kv_volume.items():
+            volume = cast(Traversable, volume)
+            kv_files = {x.name: x for x in volume.children}
+            neighboring_filenames = kv_files.keys()
             channel_pairs: List[str] = []
-            for file_entry_name, file_entry in volume.children.items():
+            for file_element_name, file_element in kv_files.items():
 
-                if file_entry.file_type in (FileType.SAMPLE_S1000, FileType.SAMPLE_S3000):
+                if file_element.type_id == ElementTypes.SampleEntry:
 
                     alternate_sample = None
-                    export_name = file_entry_name
-                    match = _STEREO_FILENAME.match(file_entry_name)
+                    export_name = file_element_name
+                    match = _STEREO_FILENAME.match(file_element_name)
                     if match:
                         if match.group(1) in channel_pairs:
                             continue
@@ -345,12 +218,14 @@ def export_samples_to_wav(image: AkaiImage, base_dir: str):
                             alternate_ending
                         ))
                         if alternate_name in neighboring_filenames:
-                            alternate_sample = volume.children[alternate_name].file
+                            alternate_sample = kv_files[alternate_name]
+                            alternate_sample = cast(Sample, alternate_sample)
                             export_name = match.group(1)
                             channel_pairs.append(export_name)
                     
-                    if file_entry.file is not None:
-                        channels = [file_entry.file]
+                    if file_element is not None:
+                        file_element = cast(Sample, file_element)
+                        channels = [file_element]
                         if alternate_sample is not None:
                             channels.append(alternate_sample)
                         

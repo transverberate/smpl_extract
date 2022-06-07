@@ -22,7 +22,7 @@ class Infoable(Protocol):
     def get_info(self) -> Printable: ...
 
 
-class ElementTypes(enum.Enum):
+class ElementTypes(enum.IntEnum):
     DirectoryEntry = enum.auto()
     SampleEntry = enum.auto()
     ProgramEntry = enum.auto()

@@ -16,10 +16,12 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 from io import  IOBase
-from typing import Container
+from typing import ClassVar, Container, List, Optional
 from typing import Sequence
 from typing import Iterable
 
+from base import Element
+from base import ElementTypes
 from .akai_string import AkaiPaddedString
 from .data_types import AKAI_SAMPLE_WORDLENGTH
 from .data_types import DEFAULT_SAMPLE_RATE
@@ -27,12 +29,14 @@ from .data_types import AkaiLoopType
 from .data_types import AkaiMidiNote
 from .data_types import AkaiTuneCents
 from .data_types import SampleType
+from elements import SampleElement
 from midi import MidiNote
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
 from util.constructs import EnumWrapper
-from util.dataclass import make_itemizable
 import util.dataclass
+from util.dataclass import is_public_field
+from util.dataclass import make_itemizable
 
 
 @make_itemizable
@@ -45,8 +49,9 @@ class LoopEntry:
 
 
 @dataclass
-class Sample:
-    name: str
+class Sample(SampleElement):
+    file_name:          str
+    sample_name:        str
     sample_type:        SampleType
     sample_rate:        int
     bytes_per_sample:   int
@@ -59,12 +64,27 @@ class Sample:
     loop_type:          AkaiLoopType = AkaiLoopType.LOOP_INACTIVE
     loop_entries:       Sequence[LoopEntry] = tuple()
     data_stream:        IOBase = field(default_factory=IOBase)
+    _parent:            Optional[Element] = None
+    _path:              List[str] = field(default_factory=list)
+
+    type_id: ClassVar[ElementTypes] = ElementTypes.SampleEntry
+
+
+    def __post_init__(self):
+        self.type_name = str(self.sample_type)
+
+
+    @property
+    def name(self) -> str:
+        result = self.file_name
+        return result
 
 
     def itemize(self):
         items = {
             k.name: getattr(self, k.name) 
-            for k in fields(self) if k.name != "data_stream"
+            for k in fields(self) if k.name != "data_stream" 
+                and is_public_field(k.name) 
         }
         result = util.dataclass.itemize(items)
         return result
@@ -118,7 +138,7 @@ SampleHeaderConstruct = Struct(
     "id"                    / EnumWrapper(Int8ul, SampleType),
     Padding(1),
     "note_pitch"            / AkaiMidiNote(Int8ul),
-    "name"                  / AkaiPaddedString(12),
+    "sample_name"           / AkaiPaddedString(12),
     Padding(4),
     "loop_type"             / EnumWrapper(Int8ul, AkaiLoopType),
     "pitch_offset_cents"    / AkaiTuneCents(Int8sl),
@@ -148,7 +168,7 @@ SampleHeaderConstruct = Struct(
 class SampleHeaderContainer(Container):
     id:                 SampleType
     note_pitch:         MidiNote
-    name:               str 
+    sample_name:        str 
     loop_type:          AkaiLoopType
     pitch_offset_cents: int
     pitch_offset_semi:  int
@@ -164,9 +184,18 @@ class SampleAdapter(Adapter):
 
 
     def _decode(self, obj: SampleHeaderContainer, context, path)->Sample:
-        del context, path  # Unused
+        del path  # Unused
 
         sample_header = obj
+        file_name = context.get("name", sample_header.sample_name)
+        if "parent" in context.keys():
+            parent = context.parent
+            element_path = parent.path
+        else:
+            parent = None
+            element_path = []
+
+        sample_path = element_path + [file_name]
         
         loop_entries = []
         if sample_header.loop_type != AkaiLoopType.LOOP_INACTIVE:
@@ -180,7 +209,8 @@ class SampleAdapter(Adapter):
             sample_rate = DEFAULT_SAMPLE_RATE
 
         result = Sample(
-            sample_header.name,
+            file_name,
+            sample_header.sample_name,
             sample_header.id,
             sample_rate,
             AKAI_SAMPLE_WORDLENGTH,
@@ -192,7 +222,9 @@ class SampleAdapter(Adapter):
             sample_header.pitch_offset_semi,
             sample_header.loop_type,
             loop_entries,
-            sample_header.data_stream
+            sample_header.data_stream,
+            _parent=parent,
+            _path=sample_path
         )
         return result
 
