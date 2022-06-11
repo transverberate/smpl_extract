@@ -1,5 +1,4 @@
 import os, sys
-from typing import List
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
@@ -20,9 +19,10 @@ from construct.core import Switch
 from construct.lib.containers import Container
 from construct.expr import len_
 from construct.expr import this
-from enum import IntEnum
 from dataclasses import dataclass
 from dataclasses import field
+from enum import IntEnum
+from typing import List
 
 from util import bytes2int
 from midi import MidiNote

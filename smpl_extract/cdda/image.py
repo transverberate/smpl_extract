@@ -12,10 +12,13 @@ from typing import ClassVar
 from typing import List
 from typing import Optional
 
-from base import Element
+from smpl_extract.base import Element
 from cuesheet import CueSheetFile
 from elements import SampleElement
-from elements import Traversable
+from elements import Image
+from generalized.sample import ChannelConfig
+from generalized.sample import Endianness
+from generalized.sample import Sample
 import util.dataclass
 from util.dataclass import is_public_field
 from util.stream import StreamOffset
@@ -54,9 +57,24 @@ class AudioTrack(SampleElement):
         result = util.dataclass.itemize(items)
         return result
 
+    def to_generalized(self) -> Sample:
+        data_streams = [self.data_stream]
+        result = Sample(
+            name=self.name,
+            path=self.path,
+            channel_config=ChannelConfig.STEREO_SINGLE_STREAM,
+            endianness=Endianness.LITTLE,
+            sample_rate=self.sample_rate,
+            bytes_per_sample=self.bytes_per_sample,
+            num_channels=2,
+            num_audio_samples=self.num_audio_samples,
+            data_streams=data_streams
+        )
+        return result
+
 
 @dataclass
-class CompactDiskAudioImage(Traversable):
+class CompactDiskAudioImage(Image):
     tracks: List[AudioTrack] = field(default_factory=list)
     _path: ClassVar[List[str]] = []
     _parent: ClassVar[Optional[Element]] = None
@@ -69,6 +87,7 @@ class CompactDiskAudioImage(Traversable):
 
 
 class CompactDiskAudioImageAdapter:
+
 
     @classmethod
     def from_bin_cue(

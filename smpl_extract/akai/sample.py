@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 from io import  IOBase
+import math
 from typing import ClassVar, Container, List, Optional
 from typing import Sequence
 from typing import Iterable
@@ -30,6 +31,10 @@ from .data_types import AkaiMidiNote
 from .data_types import AkaiTuneCents
 from .data_types import SampleType
 from elements import SampleElement
+from generalized.sample import ChannelConfig
+from generalized.sample import Endianness
+from generalized.sample import LoopRegion
+from generalized.sample import Sample
 from midi import MidiNote
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
@@ -49,7 +54,7 @@ class LoopEntry:
 
 
 @dataclass
-class Sample(SampleElement):
+class AkaiSample(SampleElement):
     file_name:          str
     sample_name:        str
     sample_type:        SampleType
@@ -87,6 +92,45 @@ class Sample(SampleElement):
                 and is_public_field(k.name) 
         }
         result = util.dataclass.itemize(items)
+        return result
+
+
+    def to_generalized(self) -> Sample:
+
+        loop_regions: List[LoopRegion] = []
+        if self.loop_type != AkaiLoopType.LOOP_INACTIVE:
+            for i, loop in enumerate(self.loop_entries):
+                play_cnt = None
+                if not loop.repeat_forever:
+                    loop_duration = loop.loop_duration
+                    loop_total_duration = (loop.loop_end - loop.loop_start) \
+                        / self.sample_rate
+                    if loop_total_duration == 0: 
+                        continue
+                    play_cnt = round(loop_duration/loop_total_duration)
+                loop_regions.append(LoopRegion(
+                    start_sample=loop.loop_start,
+                    end_sample=math.floor(loop.loop_end),
+                    repeat_forever=loop.repeat_forever,
+                    play_cnt=play_cnt,
+                    duration=loop.loop_duration
+                ))
+
+        data_streams = [self.data_stream]
+        result = Sample(
+            name=self.name,
+            path=self.path,
+            channel_config=ChannelConfig.MONO,
+            endianness=Endianness.LITTLE,
+            sample_rate=self.sample_rate,
+            bytes_per_sample=self.bytes_per_sample,
+            num_channels=1,
+            midi_note=self.note_pitch,
+            pitch_offset_semi=self.pitch_semi,
+            pitch_offset_cents=self.pitch_cents,
+            loop_regions=loop_regions,
+            data_streams=data_streams
+        )
         return result
       
 
@@ -183,7 +227,7 @@ class SampleHeaderContainer(Container):
 class SampleAdapter(Adapter):
 
 
-    def _decode(self, obj: SampleHeaderContainer, context, path)->Sample:
+    def _decode(self, obj: SampleHeaderContainer, context, path)->AkaiSample:
         del path  # Unused
 
         sample_header = obj
@@ -208,7 +252,7 @@ class SampleAdapter(Adapter):
         if sample_rate == 0:
             sample_rate = DEFAULT_SAMPLE_RATE
 
-        result = Sample(
+        result = AkaiSample(
             file_name,
             sample_header.sample_name,
             sample_header.id,

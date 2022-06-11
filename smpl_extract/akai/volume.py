@@ -3,10 +3,10 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from dataclasses import dataclass
-from typing import Dict, List, cast
+from typing import List
+from typing import cast
 from typing import Iterable
 from typing import Optional
-from typing import OrderedDict
 from construct.core import Adapter
 from construct.core import Computed
 from construct.core import ConstructError

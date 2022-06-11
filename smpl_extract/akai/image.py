@@ -6,16 +6,19 @@ from construct.core import ConstructError
 from io import IOBase
 from io import SEEK_END
 from io import SEEK_SET
-from typing import List
+import re
+from typing import List, cast
 
 from elements import ElementTypes
-from elements import Traversable
+from elements import Image
+from generalized.sample import combine_stereo
+from generalized.sample import Sample
 from .partition import InvalidPartition
 from .partition import Partition
 from .partition import PartitionConstruct
 
 
-class AkaiImage(Traversable):
+class AkaiImage(Image):
 
 
     name = "AKAI Image"
@@ -76,5 +79,47 @@ class AkaiImage(Traversable):
         result = input_str.upper().strip()
         if len(result) > 0 and result[-1] == ":":
             result = result[:-1]
+        return result
+
+
+    _STEREO_FILENAME = re.compile(r"(.*?)([\s-]+)(L|R)\s*$")
+    def combine_stereo_routine(
+            self, 
+            samples: List[Sample]
+    ) -> List[Sample]:
+
+        sample_dict = {s.name: s for s in samples}
+        marked = {n: False for n in sample_dict}
+        result = []
+        for sample in samples:
+
+            result_sample = sample
+            name = sample.name
+            if marked[name]:
+                continue
+
+            match = self._STEREO_FILENAME.match(name)
+            if match:
+                alternate_ending = "R" if match.group(3) == "L" else "L"
+                alternate_name = "".join((
+                    match.group(1), 
+                    match.group(2), 
+                    alternate_ending
+                ))
+                if alternate_name in sample_dict.keys():
+                    alternate_sample = sample_dict[alternate_name]
+                    alternate_sample = cast(Sample, alternate_sample)
+                    if alternate_ending == "R":
+                        pairs = [sample, alternate_sample]
+                    else:
+                        pairs = [alternate_sample, sample]
+
+                    new_name = match.group(1)
+                    result_sample = combine_stereo(pairs[0], pairs[1], new_name)
+                    marked[alternate_name] = True
+                
+            result.append(result_sample)
+            marked[name] = True
+
         return result
 

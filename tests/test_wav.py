@@ -5,9 +5,9 @@ sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 import unittest
 
-from smpl_extract.wav.base import WavDataChunkStruct
-from smpl_extract.wav.base import WavFormatChunkContainer 
-from smpl_extract.wav.base import WavFormatChunkStruct
+from smpl_extract.formats.wav import WavDataChunkStruct
+from smpl_extract.formats.wav import WavFormatChunkContainer 
+from smpl_extract.formats.wav import WavFormatChunkStruct
 
 
 class WaveTest(unittest.TestCase):

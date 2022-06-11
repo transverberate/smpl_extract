@@ -5,6 +5,8 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 from abc import ABCMeta
 from abc import abstractmethod
 import re
+from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -13,6 +15,8 @@ from typing import cast
 from base import Element
 from base import ElementTypes
 from base import Printable
+from generalized.wav import export_wav
+from generalized.sample import Sample
 from info import InfoTable
 from info import InfoTree
 from util.dataclass import ItemT
@@ -21,6 +25,7 @@ from util.dataclass import ItemT
 class ErrorNoChildWithName(Exception): ...
 class ErrorNotTraversable(Exception): ...
 class ErrorInvalidPath(Exception): ...
+class ErrorInvalidName(Exception): ...
 
 
 class LeafElement(Element, metaclass=ABCMeta):
@@ -35,12 +40,85 @@ class LeafElement(Element, metaclass=ABCMeta):
         return result
 
 
-class SampleElement(LeafElement):
+class SampleElement(LeafElement, metaclass=ABCMeta):
     type_id = ElementTypes.SampleEntry
+
+    @abstractmethod
+    def to_generalized(self) -> Sample: ...
 
 
 class ProgramElement(LeafElement):
     type_id = ElementTypes.ProgramEntry
+
+
+class ExportManager:
+    def __init__(
+            self,
+            output_directory: str = "",
+            routines: Optional[Dict[
+                str, 
+                Callable[[List[Sample]],List[Sample]]
+            ]] = None
+        ) -> None:
+        self.output_directory: str
+        self.routines: Dict[str, Callable[[List[Sample]],List[Sample]]]
+        self.samples: List[Sample]
+        self.level: Tuple[str, ...]
+
+        self.output_directory = output_directory
+        self.routines = routines or {}
+        self.samples = []
+        self.level = ()
+
+
+    def add_sample(self, sample: Sample):
+        self.samples.append(sample)
+
+
+    def set_level(self, level: Tuple[str, ...]):
+        self.level = level
+        self.samples.clear()
+
+    
+    def finish_level(self):
+        self.export_samples()
+        self.level = ()
+
+
+    _SAFE_ENDING = re.compile(r"(.+?)\s*\.?\s*$")
+    def sanitize_name(self, name: str)->str:
+        result = name.replace(":", "")
+        match = self._SAFE_ENDING.match(result)
+        if not match:
+            raise ErrorInvalidName(f"Invalid name {name}")
+        result = match.group(1)
+        return result
+
+
+    def make_output_path(self, sample_name: str) -> str:
+        components = list(self.level) + [sample_name]
+        components = [self.sanitize_name(x) for x in components]
+        result = "/".join(components)
+        return result
+
+
+    def export_samples(self):
+        samples = self.samples
+        for f_routine in self.routines.values():
+            samples = f_routine(samples)
+
+        for sample in samples:
+            inner_path = self.make_output_path(sample.name)
+            total_path = os.path.join(self.output_directory, inner_path) + ".wav"
+            dir_name = os.path.dirname(total_path)
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+            export_name = "/".join(sample.path) + ".wav"
+            export_wav(sample, total_path)
+            print(f"Exported {export_name}")
+
+        self.samples.clear()
+        return 
 
 
 class Traversable(Element):
@@ -125,15 +203,25 @@ class Traversable(Element):
         return current_node
 
     
-    def get_samples(self) -> List[SampleElement]: 
-        samples: List[SampleElement] = []
+    def export_samples(self, export_manager: ExportManager):
+        
+        export_manager.set_level(tuple(self.path))
         for child in self.children:
             if child.type_id == ElementTypes.SampleEntry:
                 child = cast(SampleElement, child)
-                samples.append(child)
+                sample = child.to_generalized()
+                export_manager.add_sample(sample)
             elif isinstance(child, Traversable):
-                res = child.get_samples()
-                samples += res
+                child.export_samples(export_manager)
         
-        return samples
+        export_manager.finish_level()
+        return
+
+
+class Image(Traversable):
+
+
+    def combine_stereo_routine(self, samples: List[Sample]) -> List[Sample]:
+        result = samples
+        return result
 

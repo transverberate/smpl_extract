@@ -1,7 +1,13 @@
+import os, sys
+_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
 from construct.core import Adapter
 from dataclasses import dataclass
 from io import IOBase
 from typing import List
+from typing import Optional
 
 from .data_types import AKAI_SAT_EOF_FLAG
 from .data_types import AKAI_SAT_FREE_FLAG
@@ -10,8 +16,8 @@ from .data_types import AKAI_SAT_RESERVED_FLAG_V2
 from .segment import Segment
 
 
-class RequestedInvalidSector(Exception):
-    pass
+class RequestedInvalidSector(Exception): ...
+class InvalidFatDefinition(Exception): ...
 
 
 @dataclass
@@ -27,7 +33,7 @@ class SegmentAllocationTable:
             self,
             partition_stream: IOBase,
             size: int = 0,
-            sector_links: List[SectorLink] = None
+            sector_links: Optional[List[SectorLink]] = None
     ) -> None:
         self.partition_stream = partition_stream
         self.size = size
@@ -55,7 +61,7 @@ class SegmentAllocationTable:
             current_sector = sector_link.next
 
         if loop_cnt >= self.size:
-            raise Exception("Broken FAT. Loop? Sector path exceeds size?")
+            raise InvalidFatDefinition("Broken FAT. Loop? Sector path exceeds size?")
 
         return path
 
@@ -158,6 +164,7 @@ class SegmentAllocationTableAdapter(Adapter):
 
         result = SegmentAllocationTable(partition_stream, size, sector_links)
         return result
+
 
     def _encode(self, obj, context, path):
         raise NotImplementedError
