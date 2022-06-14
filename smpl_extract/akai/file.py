@@ -13,11 +13,7 @@ from .data_types import FileType
 from .program import ProgramConstruct
 from .sample import SampleAdapter
 from .sample import SampleHeaderConstruct
-from .sat import RequestedInvalidSector
-
-
-class File:
-    pass 
+from util.fat import RequestedInvalidSector
 
 
 FileConstruct = Switch(

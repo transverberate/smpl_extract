@@ -4,75 +4,47 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 from construct.core import Adapter
-from dataclasses import dataclass
 from io import IOBase
 from typing import List
-from typing import Optional
 
 from .data_types import AKAI_SAT_EOF_FLAG
 from .data_types import AKAI_SAT_FREE_FLAG
 from .data_types import AKAI_SAT_RESERVED_FLAG_STD
 from .data_types import AKAI_SAT_RESERVED_FLAG_V2
-from .segment import Segment
+from .data_types import AKAI_SECTOR_SIZE
+from util.fat import add_to_sector_links
+from util.fat import FileAllocationTable
+from util.fat import FileStream
+from util.fat import SectorLink
 
 
-class RequestedInvalidSector(Exception): ...
-class InvalidFatDefinition(Exception): ...
-
-
-@dataclass
-class SectorLink:
-    next:   int     = 0
-    end:    bool    = True
-
-
-class SegmentAllocationTable:
-
+class Segment(FileStream):
+    
 
     def __init__(
             self,
-            partition_stream: IOBase,
-            size: int = 0,
-            sector_links: Optional[List[SectorLink]] = None
+            partition_stream:   IOBase,
+            sector_list:        List[int],
+            position:           int = 0,
+            buffer_length:      int = 0x1000
     ) -> None:
-        self.partition_stream = partition_stream
-        self.size = size
-        self.sector_links = sector_links or []
 
-    
-    def get_path(
-            self, 
-            starting_sector: int
-    )->List[int]:
+        super().__init__(
+            partition_stream, 
+            sector_size=AKAI_SECTOR_SIZE,
+            sector_list=sector_list,
+            position=position,
+            buffer_length=buffer_length
+        )
 
-        path = []
-        current_sector = starting_sector
 
-        loop_cnt = 0
-        while loop_cnt < self.size:
-            if current_sector >= len(self.sector_links):
-                raise RequestedInvalidSector
+class SegmentAllocationTable(FileAllocationTable):
 
-            path.append(current_sector)
-            sector_link = self.sector_links[current_sector]
 
-            if sector_link.end:
-                break
-            current_sector = sector_link.next
-
-        if loop_cnt >= self.size:
-            raise InvalidFatDefinition("Broken FAT. Loop? Sector path exceeds size?")
-
-        return path
-
-    
-    def get_segment(
-            self,
-            index: int
-    )->Segment:
+    def get_segment(self, index: int) -> Segment:
         sector_list = self.get_path(index)
         result = Segment(
-            self.partition_stream,
+            self.parent_stream,
             sector_list
         )
         return result
@@ -91,7 +63,7 @@ class SegmentAllocationTableAdapter(Adapter):
             obj: List[int], 
             context, 
             path
-    )->SegmentAllocationTable:
+    ) -> SegmentAllocationTable:
 
         del path  # Unused 
         block = obj
@@ -103,14 +75,6 @@ class SegmentAllocationTableAdapter(Adapter):
         size = len(block)
         sector_links = [SectorLink()] * size
         dirty_flags = [False] * size
-
-        def add_to_sector_links(links_arg: List[int]):
-            links_iter = iter(links_arg)
-            prev_link = next(links_iter)
-            for link in links_iter:
-                sector_links[prev_link] = SectorLink(next=link, end=False)
-                prev_link = link
-            sector_links[prev_link] = SectorLink(next=0, end=True)
 
         previous_sector_was_directory = True
         for i in range(size):
@@ -132,7 +96,7 @@ class SegmentAllocationTableAdapter(Adapter):
                     )
 
                     if not current_sector_is_directory and previous_sector_was_directory and len(links) > 0:
-                        add_to_sector_links(links)
+                        add_to_sector_links(links, sector_links)
                         previous_sector_was_directory = False
                         continue_flag = False
                         break
@@ -145,7 +109,7 @@ class SegmentAllocationTableAdapter(Adapter):
                         break 
                     elif value_current == AKAI_SAT_EOF_FLAG:
                         links.append(subpath_index)
-                        add_to_sector_links(links)
+                        add_to_sector_links(links, sector_links)
                         dirty_flags[subpath_index] = True
                         previous_sector_was_directory = current_sector_is_directory
                         continue_flag = False

@@ -1,7 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from construct.core import Construct
 from io import IOBase
 from io import SEEK_CUR
@@ -124,6 +120,38 @@ class StreamOffset(StreamWrapper):
     def _translate_addr(self, address: int)->int:
         true_address = self.offset + address
         return true_address
+
+
+def _singleton(x) -> Construct:
+    y = x()
+    return y
+
+
+@_singleton
+class StreamSizeConstruct(Construct):
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.flagbuildnone = True
+
+        
+        def _parse(self, stream: IOBase, context, path):
+            del context, path  # Unused
+            pos = stream.tell()
+            stream.seek(0, SEEK_END)
+            size = stream.tell()
+            stream.seek(pos, SEEK_SET)
+            return size
+
+
+        def _build(self, obj, stream, context, path):
+            del obj  # Unused
+            result = self._parse(stream, context, path)
+            return result
+
+
+        def _sizeof(self, context, path):
+            return 0
 
 
 class SubStreamConstruct(Construct):

@@ -29,7 +29,7 @@ from .data_types import FILE_TABLE_END_FLAG
 from .data_types import FileType
 from .file import FileAdapter
 from .file import FileConstruct
-from .sat import RequestedInvalidSector
+from util.fat import RequestedInvalidSector
 from util.stream import StreamWrapper
 from util.constructs import EnumWrapper
 
