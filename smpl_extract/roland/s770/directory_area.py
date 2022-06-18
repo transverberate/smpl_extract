@@ -8,16 +8,17 @@ from typing import List
 from typing import cast
 from construct.core import Adapter
 from construct.core import Array
-from construct.core import Bytes 
 from construct.core import Computed
 from construct.core import Construct
 from construct.core import ConstructError
 from construct.core import FixedSized
+from construct.core import PaddedString
 from construct.core import Int16ul
 from construct.core import Int32ul
 from construct.core import Int8ul
 from construct.core import Struct
 
+from .data_types import FileType
 from .data_types import MAX_NUM_PARTIAL
 from .data_types import PARTIAL_DIRECTORY_AREA_SIZE
 from .data_types import MAX_NUM_PATCH
@@ -28,24 +29,22 @@ from .data_types import MAX_NUM_SAMPLE
 from .data_types import SAMPLE_DIRECTORY_AREA_SIZE
 from .data_types import MAX_NUM_VOLUME
 from .data_types import VOLUME_DIRECTORY_AREA_SIZE
-from .data_types import FileType
 from util.constructs import MappingDefault
 
 
 DirectoryEntryStruct = Struct(
-    "name_raw"          / Bytes(16),
-    "name"              / Computed(lambda this: ""),
+    "name"              / PaddedString(16, encoding="ascii"),
     "index"             / Computed(lambda this: this._index),
     "file_type"         / MappingDefault(
         Int8ul, 
         {
-            0x40: FileType.VOLUME,
-            0x41: FileType.PERFORMANCE,
-            0x42: FileType.PATCH,
-            0x43: FileType.PARTIAL,
-            0x44: FileType.SAMPLE
+            FileType.VOLUME:        0x40,
+            FileType.PERFORMANCE:   0x41,
+            FileType.PATCH:         0x42,
+            FileType.PARTIAL:       0x43,
+            FileType.SAMPLE:        0x44
         },
-        (0x00, FileType.NONE)
+        (FileType.NONE, 0x00)
     ),
     "file_attributes"   / Int8ul,
     "forward_link_ptr"  / Int16ul,

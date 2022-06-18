@@ -18,7 +18,7 @@ from .partition import Partition
 from .partition import PartitionConstruct
 
 
-class AkaiImage(Image):
+class AkaiImageParser(Image):
 
 
     name = "AKAI Image"
@@ -38,9 +38,6 @@ class AkaiImage(Image):
         self._partitions = []
         self._partitions_loaded_flag = False
 
-        self._path = []
-        self._parent = None
-
 
     def _load_partitions(self):
         partition_cnt = 0
@@ -52,7 +49,7 @@ class AkaiImage(Image):
                     name=name,
                     parent=self
                 )  
-            except (InvalidPartition, ConstructError):
+            except (InvalidPartition, ConstructError) as e:
                 break
             self._partitions.append(partition)
             partition_cnt += 1

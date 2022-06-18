@@ -17,8 +17,10 @@ from construct.core import Sequence
 from construct.lib.containers import Container
 from enum import IntEnum
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import Generic
+from typing import Optional
 from typing import Tuple
 from typing import TypeVar
 from typing import Type
@@ -30,6 +32,15 @@ def sanitize_container(container: Container)->Dict[str, Any]:
         if len(k)>0 and k[0] != "_"
     }
     return result
+
+
+def pass_expression_deeper(expression: Any) -> Callable:
+    if callable(expression):
+        new_expression = lambda this: expression(this._)
+    else:
+        new_expression = lambda this: expression
+        
+    return new_expression
 
 
 T = TypeVar('T', bound=IntEnum)
@@ -201,4 +212,47 @@ class SlicingGeneral(Adapter):
         slicing, start, stop, step = self._realize(context)
         result = slicing._encode(obj[start:stop:step], context, path)
         return result
+
+
+class SafeListConstruct(Array):
+
+
+    def __init__(
+            self, 
+            count, 
+            subcon, 
+            predicate: Optional[Callable[[Any],bool]] = None
+    ) -> None:
+        super().__init__(count, subcon)  # type: ignore
+        self.predicate = predicate
+
+
+    def _parse(self, stream, context, path):
+        count = evaluate(self.count, context)
+        if count <= 0:
+            raise RangeError(f"invalid count {count}", path=path)
+        obj = dict()
+        if self.predicate is not None:
+            predicate = self.predicate
+        else:
+            predicate = lambda obj: True
+        for i in range(count):
+            context._index = i
+            try:
+                entry = self.subcon._parsereport(stream, context, path)  # type: ignore
+            except (UnicodeDecodeError, ConstructError, KeyError, IndexError) as e:
+                continue
+            if predicate(obj):
+                obj[i] = (entry)
+        return obj
+
+
+class UnsizedConstruct(Subconstruct):
+
+
+    def _sizeof(self, context, path) -> int:
+        try:
+            return super()._sizeof(context, path)  # type: ignore
+        except:
+            return 0  # really bad practice 
 

@@ -109,3 +109,27 @@ class FileType(enum.IntEnum):
         result = self.name.title()
         return result
 
+
+class SampleMode(enum.IntEnum):
+    MONO    = 0
+    STEREO  = 1
+
+    def __str__(self) -> str:
+        result = self.name.title()
+        return result
+
+
+class LoopMode(enum.IntEnum):
+    FORWARD_END     = 0
+    FORWARD_RELEASE = 1
+    ONESHOT         = 2
+    FORWARD_ONESHOT = 3
+    ALTERNATE       = 4
+    REVERSE_ONESHOT = 5
+    REVERSE_LOOP    = 6
+
+    def __str__(self) -> str:
+        result = self.name.replace("_", " ")
+        result = result.title()
+        return result
+

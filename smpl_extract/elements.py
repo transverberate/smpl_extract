@@ -6,6 +6,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 import re
 from typing import Callable
+from typing import ClassVar
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -219,6 +220,10 @@ class Traversable(Element):
 
 
 class Image(Traversable):
+
+
+    _path: ClassVar = []
+    _parent: ClassVar = None
 
 
     def combine_stereo_routine(self, samples: List[Sample]) -> List[Sample]:

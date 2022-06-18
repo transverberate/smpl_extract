@@ -46,12 +46,18 @@ class Element(metaclass=ABCMeta):
 
     @property
     def path(self) -> List[str]:
-        result = self._path
+        if hasattr(self, "_path"):
+            result = self._path
+        else:
+            result = []
         return result
 
     @property
     def parent(self) -> Optional['Element']:
-        result = self._parent
+        if hasattr(self, "_parent"):
+            result = self._parent
+        else:
+            result = None
         return result
     
     @abstractmethod

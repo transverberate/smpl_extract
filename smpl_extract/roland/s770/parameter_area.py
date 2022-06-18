@@ -7,17 +7,21 @@ from typing import cast
 from typing import List
 from construct.core import Adapter
 from construct.core import Array
+from construct.core import Bitwise
 from construct.core import Computed
 from construct.core import FixedSized
 from construct.core import Int16sl
 from construct.core import Int16ul
 from construct.core import Int32ul
 from construct.core import Int8ul
+from construct.core import Int8sl
+from construct.core import Nibble
+from construct.core import PaddedString
 from construct.core import Padding
 from construct.core import Struct
-from construct.core import Bytes
 import numpy as np
 
+from .data_types import LoopMode
 from .data_types import MAX_NUM_PARTIAL
 from .data_types import MAX_NUM_PATCH
 from .data_types import MAX_NUM_PERFORMANCE
@@ -28,19 +32,19 @@ from .data_types import PATCH_PARAMETER_AREA_SIZE
 from .data_types import PERFORMANCE_PARAMETER_AREA_SIZE
 from .data_types import SAMPLE_PARAMETER_AREA_SIZE
 from .data_types import VOLUME_PARAMETER_AREA_SIZE
+from .data_types import SampleMode
+from util.constructs import MappingDefault
+from util.constructs import SafeListConstruct
 
 
 VolumeParamEntryStruct = Struct(
-    "name_raw" / Bytes(16),
-    "name" / Computed(lambda this: ""),
-    "index" / Computed(lambda this: this._index),
+    "name" / PaddedString(16, encoding="ascii"),
     Padding(16),
     "performance_ptrs" / Array(64, Int16sl),
     Padding(0x60)
 )
 @dataclass
 class VolumeParamEntryContainer:
-    name_raw: bytes
     name: str
     index: int
     performance_ptrs: List[int]
@@ -66,37 +70,8 @@ class VolumeParamEntryAdapter(Adapter):
 VolumeParamEntry = VolumeParamEntryAdapter(VolumeParamEntryStruct)
 
 
-class VolumeParamEntryList(Adapter):
-
-
-    def _decode(self, obj, context, path) -> List[VolumeParamEntryContainer]:
-        del context, path  # unused
-
-        entries = cast(List[VolumeParamEntryContainer], obj)
-        entries_filtered = []
-        for entry in entries:
-            try:
-                entry.name = entry.name_raw.decode(encoding="ascii")
-            except UnicodeDecodeError:
-                continue
-            disqualifiers = (
-                len(entry.name) <= 0,
-                len(entry.performance_ptrs) <= 0
-            )
-            if any(disqualifiers):
-                continue
-            entries_filtered.append(entry)
-
-        return entries_filtered
-
-
-    def _encode(self, obj, context, path):
-        raise NotImplementedError
-
-
 PerformanceParamEntryStruct = Struct(
-    "name_raw" / Bytes(16),
-    "name" / Computed(lambda this: ""),
+    "name" / PaddedString(16, encoding="ascii"),
     "index" / Computed(lambda this: this._index),
     "parts_patch_selection" / Array(32, Int8ul),
     "midi_channel_data" / Array(16, Int8ul),
@@ -119,7 +94,6 @@ PerformanceParamEntryStruct = Struct(
 )
 @dataclass
 class PerformanceParamEntryContainer:
-    name_raw: bytes
     name: str
     index: int
     parts_patch_selection: List[int] 
@@ -156,34 +130,6 @@ class PerformanceParamEntryAdapter(Adapter):
 
 
 PerformanceParamEntry = PerformanceParamEntryAdapter(PerformanceParamEntryStruct)
-
-
-class PerformanceParamEntryList(Adapter):
-
-
-    def _decode(self, obj, context, path) -> List[PerformanceParamEntryContainer]:
-        del context, path  # unused
-
-        entries = cast(List[PerformanceParamEntryContainer], obj)
-        entries_filtered = []
-        for entry in entries:
-            try:
-                entry.name = entry.name_raw.decode(encoding="ascii")
-            except UnicodeDecodeError:
-                continue
-            disqualifiers = (
-                len(entry.name) <= 0,
-                len(entry.patch_list) <= 0
-            )
-            if any(disqualifiers):
-                continue
-            entries_filtered.append(entry)
-
-        return entries_filtered
-
-
-    def _encode(self, obj, context, path):
-        raise NotImplementedError
 
 
 BenderParamStruct = Struct(
@@ -257,8 +203,7 @@ class ControllerParamContainer:
 
 
 PatchParamEntryStruct = Struct(
-    "name_raw" / Bytes(16),
-    "name" / Computed(lambda this: ""),
+    "name" / PaddedString(16, encoding="ascii"),
     "index" / Computed(lambda this: this._index),
     "program_change_num" / Int8ul,
     "stereo_mix_level" / Int8ul,
@@ -291,7 +236,6 @@ PatchParamEntryStruct = Struct(
 )
 @dataclass
 class PatchParamEntryContainer:
-    name_raw: bytes
     name: str
     index: int
     program_change_num: int
@@ -337,41 +281,13 @@ class PatchParamEntryAdapter(Adapter):
 PatchParamEntry = PatchParamEntryAdapter(PatchParamEntryStruct)
 
 
-class PatchParamEntryList(Adapter):
-
-
-    def _decode(self, obj, context, path) -> List[PatchParamEntryContainer]:
-        del context, path  # unused
-
-        entries = cast(List[PatchParamEntryContainer], obj)
-        entries_filtered = []
-        for entry in entries:
-            try:
-                entry.name = entry.name_raw.decode(encoding="ascii")
-            except UnicodeDecodeError:
-                continue
-            disqualifiers = (
-                len(entry.name) <= 0,
-                len(entry.partial_list) <= 0
-            )
-            if any(disqualifiers):
-                continue
-            entries_filtered.append(entry)
-
-        return entries_filtered
-
-
-    def _encode(self, obj, context, path):
-        raise NotImplementedError
-
-
 PartialParamSampleSectionStruct = Struct(
-    "sample_selection" / Int16ul,
+    "sample_selection" / Int16sl,
     "pitch_kf" / Int8ul,
     "sample_level" / Int8ul,
-    "pan" / Int8ul,
-    "coarse_tune" / Int8ul,
-    "fine_tune" / Int8ul,
+    "pan" / Int8sl,
+    "coarse_tune" / Int8sl,
+    "fine_tune" / Int8sl,
     "smt_velocity_lower" / Int8ul,
     "smt_fade_with_lower" / Int8ul,
     "smt_velocity_upper" / Int8ul,
@@ -476,8 +392,7 @@ class PartialParamLfoSectionContainer:
 
 
 PartialParamEntryStruct = Struct(
-    "name_raw" / Bytes(16),
-    "name" / Computed(lambda this: ""),
+    "name" / PaddedString(16, encoding="ascii"),
     "index" / Computed(lambda this: this._index),
     "sample_1" / PartialParamSampleSectionStruct,
     Padding(1),
@@ -501,7 +416,6 @@ PartialParamEntryStruct = Struct(
 )
 @dataclass
 class PartialParamEntryContainer:
-    name_raw: bytes
     name: str
     index: int
     sample_1: PartialParamSampleSectionContainer
@@ -521,33 +435,6 @@ class PartialParamEntryContainer:
     lfo_generator: PartialParamLfoSectionContainer
 
 
-class PartialParamEntryList(Adapter):
-
-
-    def _decode(self, obj, context, path) -> List[PartialParamEntryContainer]:
-        del context, path  # unused
-
-        entries = cast(List[PartialParamEntryContainer], obj)
-        entries_filtered = []
-        for entry in entries:
-            try:
-                entry.name = entry.name_raw.decode(encoding="ascii")
-            except UnicodeDecodeError:
-                continue
-            disqualifiers = (
-                len(entry.name) <= 0,
-            )
-            if any(disqualifiers):
-                continue
-            entries_filtered.append(entry)
-
-        return entries_filtered
-
-
-    def _encode(self, obj, context, path):
-        raise NotImplementedError
-
-
 SampleParamLoopPointStruct = Struct(
     "raw_value" / Int32ul,
     "fine" / Computed(lambda this: (this.raw_value & 255)),
@@ -561,27 +448,61 @@ class SampleParamLoopPointContainer:
 
 
 SampleParamEntryStruct = Struct(
-    "name_raw" / Bytes(16),
-    "name" / Computed(lambda this: ""),
+    "name" / PaddedString(16, encoding="ascii"),
     "index" / Computed(lambda this: this._index),
     "start_sample" / SampleParamLoopPointStruct,
     "sustain_loop_start" / SampleParamLoopPointStruct,
     "sustain_loop_end" / SampleParamLoopPointStruct,
     "release_loop_start" / SampleParamLoopPointStruct,
     "release_loop_end" / SampleParamLoopPointStruct,
-    "loop_mode" / Int8ul,
+    "loop_mode" / MappingDefault(
+        Int8ul,
+        {
+            LoopMode.FORWARD_END: 0,
+            LoopMode.FORWARD_RELEASE: 1,
+            LoopMode.ONESHOT: 2,
+            LoopMode.FORWARD_ONESHOT: 3,
+            LoopMode.ALTERNATE: 4,
+            LoopMode.REVERSE_ONESHOT: 5,
+            LoopMode.REVERSE_LOOP: 6
+        }, 
+        (LoopMode.FORWARD_END, 0)
+    ),
     "sustain_loop_enable" / Int8ul,
     "sustain_loop_tune" / Int8ul,
     "release_loop_tune" / Int8ul,
     "seg_top" / Int16ul,
     "seg_length" / Int16ul,
-    "sample_mode" / Int8ul,
+    "sample_options" / Bitwise(Struct(
+        "sample_mode" / MappingDefault(
+            Nibble,
+            {
+                SampleMode.MONO: 0,
+                SampleMode.STEREO: 1
+            },
+            (SampleMode.MONO, 0)
+        ),
+        "sampling_frequency" / MappingDefault(
+            Nibble,
+            {
+                48000: 0,
+                44100: 1,
+                24000: 2,
+                22050: 3,
+                30000: 4,
+                15000: 5
+            }
+        )
+    )),
     "original_key" / Int8ul,
     Padding(2)
 )
 @dataclass
+class SampleParamOptionsSection:
+    sample_mode: SampleMode
+    sampling_frequency: int
+@dataclass
 class SampleParamEntryContainer:
-    name_raw: bytes
     name: str
     index: int
     start_sample: SampleParamLoopPointContainer
@@ -589,41 +510,14 @@ class SampleParamEntryContainer:
     sustain_loop_end: SampleParamLoopPointContainer
     release_loop_start: SampleParamLoopPointContainer
     release_loop_end: SampleParamLoopPointContainer
-    loop_mode: int
+    loop_mode: LoopMode
     sustain_loop_enable: int
     sustain_loop_tune: int
     release_loop_tune: int
     seg_top: int
     seg_length: int
-    sample_mode: int
+    sample_options: SampleParamOptionsSection
     original_key: int
-
-
-class SampleParamEntryList(Adapter):
-
-
-    def _decode(self, obj, context, path) -> List[SampleParamEntryContainer]:
-        del context, path  # unused
-
-        entries = cast(List[SampleParamEntryContainer], obj)
-        entries_filtered = []
-        for entry in entries:
-            try:
-                entry.name = entry.name_raw.decode(encoding="ascii")
-            except UnicodeDecodeError:
-                continue
-            disqualifiers = (
-                len(entry.name) <= 0,
-            )
-            if any(disqualifiers):
-                continue
-            entries_filtered.append(entry)
-
-        return entries_filtered
-
-
-    def _encode(self, obj, context, path):
-        raise NotImplementedError
 
 
 def ParamAreaStruct(
@@ -637,36 +531,41 @@ def ParamAreaStruct(
         "volume_params"        /\
             FixedSized(
                 VOLUME_PARAMETER_AREA_SIZE, 
-                VolumeParamEntryList(
-                    VolumeParamEntry[num_volumes]
+                SafeListConstruct(
+                    num_volumes,
+                    VolumeParamEntry
                 )
             ),
         "performance_params"   /\
             FixedSized(
                 PERFORMANCE_PARAMETER_AREA_SIZE,
-                PerformanceParamEntryList(
-                    PerformanceParamEntry[num_performances]
+                SafeListConstruct(
+                    num_performances,
+                    PerformanceParamEntry
                 )
             ),
         "patch_params"         /\
             FixedSized(
                 PATCH_PARAMETER_AREA_SIZE, 
-                PatchParamEntryList(
-                    PatchParamEntry[num_patches]
+                SafeListConstruct(
+                    num_patches,
+                    PatchParamEntry
                 )
             ),
         "partial_params"       /\
             FixedSized(
                 PARTIAL_PARAMETER_AREA_SIZE, 
-                PartialParamEntryList(
-                    PartialParamEntryStruct[num_partials]
+                SafeListConstruct(
+                    num_partials,
+                    PartialParamEntryStruct
                 )
             ),
         "sample_params"        /\
             FixedSized(
                 SAMPLE_PARAMETER_AREA_SIZE, 
-                SampleParamEntryList(
-                    SampleParamEntryStruct[num_samples]
+                SafeListConstruct(
+                    num_samples,
+                    SampleParamEntryStruct
                 )
             )
     )

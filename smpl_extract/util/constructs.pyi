@@ -29,6 +29,10 @@ def sanitize_container(container: Container)->Dict[str, Any]:
     ...
 
 
+def pass_expression_deeper(expression: Any) -> Callable: 
+    ...
+
+
 T = TypeVar('T', bound=IntEnum)
 class EnumWrapper(Generic[T], Adapter):
     def __new__(cls, subcon: Construct, mapping: Type[T])->Adapter:
@@ -136,4 +140,16 @@ class SlicingGeneral(
             context: Context
     )->bool:
         ...
+
+
+class SafeListConstruct(Array):
+    def __new__(
+            cls,
+            count, 
+            subcon: Construct, 
+            predicate: Optional[Callable[[Any],bool]] = None
+    ) -> SafeListConstruct: ...
+
+
+class UnsizedConstruct(Subconstruct): ...
 

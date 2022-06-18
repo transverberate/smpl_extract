@@ -9,7 +9,7 @@ from typing import Callable
 from typing import List
 from typing import Union
 
-from akai.image import AkaiImage
+from akai.image import AkaiImageParser
 from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
 from alcohol.mdx import is_mdx_image
@@ -60,7 +60,7 @@ def determine_image_type(file: Union[str, BufferedReader]):
     elif is_mdx_image(file_stream):
         file_stream = MdxStream(file_stream)
 
-    result = AkaiImage(file_stream)
+    result = AkaiImageParser(file_stream)
     return result
 
 
