@@ -10,7 +10,7 @@ from construct.expr import this
 from .data_types import FileType
 from .data_types import InvalidCharacter
 from .data_types import FileType
-from .program import ProgramConstruct
+from .program import ProgramParser
 from .sample import SampleAdapter
 from .sample import SampleHeaderConstruct
 from util.fat import RequestedInvalidSector
@@ -21,8 +21,8 @@ FileConstruct = Switch(
     {
         FileType.SAMPLE_S1000:  SampleAdapter(SampleHeaderConstruct),
         FileType.SAMPLE_S3000:  SampleAdapter(SampleHeaderConstruct),
-        FileType.PROGRAM_S1000: ProgramConstruct,
-        FileType.PROGRAM_S3000: ProgramConstruct
+        FileType.PROGRAM_S1000: ProgramParser,
+        FileType.PROGRAM_S3000: ProgramParser
     }
 )
 

@@ -28,18 +28,18 @@ from .data_types import PARTIAL_DIRECTORY_ENTRY_SIZE
 from .data_types import PARTIAL_PARAMETER_AREA_OFFSET
 from .data_types import PARTIAL_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
-from .directory_area import DirectoryEntryStruct
+from .directory_area import DirectoryEntryParser
 from .parameter_area import PartialParamEntryContainer
 from .parameter_area import PartialParamEntryStruct
 from .parameter_area import PartialParamSampleSectionContainer
 from .sample_entry import SampleEntryAdapter
 from .sample_entry import SampleEntryContainer
-from .sample_entry import SampleEntryStruct
+from .sample_entry import SampleEntryConstruct
 from util.constructs import pass_expression_deeper
 from util.constructs import UnsizedConstruct
 
 
-def PartialEntryStruct(index_expr) -> Construct:
+def PartialEntryConstruct(index_expr) -> Construct:
     new_index_expr = pass_expression_deeper(index_expr)
 
     result = UnsizedConstruct(Struct(
@@ -52,7 +52,7 @@ def PartialEntryStruct(index_expr) -> Construct:
             lambda this: \
                 (PARTIAL_DIRECTORY_ENTRY_SIZE*new_index_expr(this)) \
                     + PARTIAL_DIRECTORY_AREA_OFFSET,
-            DirectoryEntryStruct
+            DirectoryEntryParser
         ),
         "parameter" / Pointer(
             lambda this: \
@@ -86,7 +86,7 @@ class SampleEntryReference:
 class SampleEntryReferenceAdapter(Subconstruct):
 
 
-    def _parse(self, stream, context, path):
+    def _parse(self, stream, context, path) -> SampleEntryReference:
         container = cast(
             PartialParamSampleSectionContainer, 
             context["ref_container"]
@@ -94,12 +94,13 @@ class SampleEntryReferenceAdapter(Subconstruct):
         if container.sample_selection < 0:
             raise ConstructError
         sample_entry_sc = SampleEntryAdapter(
-            SampleEntryStruct(container.sample_selection)
+            SampleEntryConstruct(container.sample_selection)
         )
+        new_path = path + " -> sample_entries"
         sample_entry = sample_entry_sc._parse(  # type: ignore
             stream, 
             context, 
-            path
+            new_path
         )  
         result = SampleEntryReference(
             sample_entry=sample_entry,
@@ -160,7 +161,7 @@ class PartialEntry(Traversable):
 class PartialEntryAdapter(Subconstruct):
 
 
-    def _parse(self, stream, context, path):
+    def _parse(self, stream, context, path) -> PartialEntry:
         sc = self.subcon
         container = cast(
             PartialEntryContainer, 
@@ -174,12 +175,12 @@ class PartialEntryAdapter(Subconstruct):
         ])
 
         sample_references = []
-        adapter = SampleEntryReferenceAdapter(Pass)
+        parser = SampleEntryReferenceAdapter(Pass)
         for ref_container in sample_ref_containers:
             ctx = context.copy()
             ctx["ref_container"] = ref_container
             try:
-                sample_reference = adapter._parse(stream, ctx, path)  # type: ignore
+                sample_reference = parser._parse(stream, ctx, path)  # type: ignore
             except (ConstructError, UnicodeDecodeError) as e:
                 continue
             sample_references.append(sample_reference)
@@ -204,6 +205,11 @@ class PartialEntryAdapter(Subconstruct):
             partial_path
         )
         context["parent"] = partial
+        try:
+            dir_version = context["_"]["_dir_version"]
+            context["_dir_version"] = dir_version
+        except KeyError as e:
+            pass
         
         return partial
 

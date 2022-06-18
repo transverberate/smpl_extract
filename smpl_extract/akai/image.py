@@ -15,7 +15,7 @@ from generalized.sample import combine_stereo
 from generalized.sample import Sample
 from .partition import InvalidPartition
 from .partition import Partition
-from .partition import PartitionConstruct
+from .partition import PartitionParser
 
 
 class AkaiImageParser(Image):
@@ -44,7 +44,7 @@ class AkaiImageParser(Image):
         while self.file.tell() < self.file_size:
             name = chr(ord("A") + partition_cnt)
             try:
-                partition = PartitionConstruct.parse_stream(
+                partition = PartitionParser.parse_stream(
                     self.file,  # type: ignore
                     name=name,
                     parent=self

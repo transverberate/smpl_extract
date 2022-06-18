@@ -27,17 +27,17 @@ from .data_types import PATCH_DIRECTORY_ENTRY_SIZE
 from .data_types import PATCH_PARAMETER_AREA_OFFSET
 from .data_types import PATCH_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
-from .directory_area import DirectoryEntryStruct
-from .parameter_area import PatchParamEntry
+from .directory_area import DirectoryEntryParser
+from .parameter_area import PatchParamEntryParser
 from .parameter_area import PatchParamEntryContainer
 from .partial_entry import PartialEntryAdapter
-from .partial_entry import PartialEntryStruct
+from .partial_entry import PartialEntryConstruct
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
 
 
-def PatchEntryStruct(index_expr) -> Construct:
+def PatchEntryConstruct(index_expr) -> Construct:
     new_index_expr = pass_expression_deeper(index_expr)
 
     result = UnsizedConstruct(Struct(
@@ -50,17 +50,17 @@ def PatchEntryStruct(index_expr) -> Construct:
             lambda this: \
                 (PATCH_DIRECTORY_ENTRY_SIZE*new_index_expr(this)) \
                     + PATCH_DIRECTORY_AREA_OFFSET,
-            DirectoryEntryStruct
+            DirectoryEntryParser
         ),
         "parameter" / Pointer(
             lambda this: \
                 (PATCH_PARAMETER_ENTRY_SIZE*new_index_expr(this)) \
                 + PATCH_PARAMETER_AREA_OFFSET,
-            PatchParamEntry
+            PatchParamEntryParser
         ),
         "partial_entries" / Lazy(SafeListConstruct(
             lambda this: len(this.parameter.partial_list),
-            PartialEntryAdapter(PartialEntryStruct(lambda this: 
+            PartialEntryAdapter(PartialEntryConstruct(lambda this: 
                 this.parameter.partial_list[this._index]
             ))
         ))
@@ -135,6 +135,11 @@ class PatchEntryAdapter(Adapter):
             patch_path
         )
         context["parent"] = patch
+        try:
+            dir_version = context["_"]["_dir_version"]
+            context["_dir_version"] = dir_version
+        except KeyError as e:
+            pass
         
         return patch
 

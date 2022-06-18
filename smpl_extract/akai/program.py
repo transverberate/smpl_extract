@@ -241,8 +241,8 @@ def _has_next_keygroup(this)->bool:
 
 KeygroupLinkConstruct = FocusedSeq(
     "keygroup",
-    "keygroup_raw" / KeygroupConstruct,
-    "keygroup" / KeygroupAdapter(Computed(this.keygroup_raw)),
+    "keygroup_raw"  / KeygroupConstruct,
+    "keygroup"      / KeygroupAdapter(Computed(this.keygroup_raw)),
     If(_has_next_keygroup,
         Seek(this.keygroup_raw.next_keygroup_address)
     )
@@ -314,7 +314,7 @@ class ProgramAdapter(Adapter):
         return result
 
 
-ProgramConstruct = ProgramAdapter(Struct(
+ProgramParser = ProgramAdapter(Struct(
     "header" / ProgramHeaderConstruct,
     If(_has_valid_first_keygroup,
         Seek(this.header.first_keygroup_address)

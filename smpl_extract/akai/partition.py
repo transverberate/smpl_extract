@@ -2,6 +2,7 @@ import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
 from typing import Callable, List, Optional
 from typing import OrderedDict
 from construct.core import Bytes
@@ -77,7 +78,7 @@ class Partition(Traversable):
         return self.volumes
 
 
-class PartitionConstructAdapter(Subconstruct):
+class PartitionAdapter(Subconstruct):
     def _parse(self, stream, context, path):
 
         try:
@@ -133,7 +134,7 @@ PartitionHeaderConstruct = Struct(
 )
 
 
-PartitionConstruct = PartitionConstructAdapter(
+PartitionParser = PartitionAdapter(
     Struct(
         "header" / PartitionHeaderConstruct,
         "volume_entries" / VolumeEntryConstruct[AKAI_VOLUME_ENTRY_CNT],

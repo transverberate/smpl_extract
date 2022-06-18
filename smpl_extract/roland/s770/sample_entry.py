@@ -17,17 +17,25 @@ from typing import List
 from typing import Optional
 from typing import cast
 
-from base import Element, ElementTypes
-from .data_types import MAX_NUM_SAMPLE, SAMPLE_DIRECTORY_AREA_OFFSET, SAMPLE_DIRECTORY_ENTRY_SIZE, SAMPLE_PARAMETER_AREA_OFFSET, SAMPLE_PARAMETER_ENTRY_SIZE
-from .directory_area import DirectoryEntryContainer, DirectoryEntryStruct
+from base import Element
+from base import ElementTypes
+from .data_types import MAX_NUM_SAMPLE
+from .data_types import SAMPLE_DIRECTORY_AREA_OFFSET
+from .data_types import SAMPLE_DIRECTORY_ENTRY_SIZE
+from .data_types import SAMPLE_PARAMETER_AREA_OFFSET
+from .data_types import SAMPLE_PARAMETER_ENTRY_SIZE
+from .directory_area import DirectoryEntryContainer
+from .directory_area import DirectoryEntryParser
 from .fat import RolandFileAllocationTable
-from .parameter_area import SampleParamEntryContainer, SampleParamEntryStruct
+from .parameter_area import SampleParamEntryContainer
+from .parameter_area import SampleParamEntryStruct
 
-from util.constructs import UnsizedConstruct, pass_expression_deeper
+from util.constructs import pass_expression_deeper
+from util.constructs import UnsizedConstruct
 from util.fat import FatNotPresent
 
 
-def SampleEntryStruct(index_expr) -> Construct:
+def SampleEntryConstruct(index_expr) -> Construct:
     new_index_expr = pass_expression_deeper(index_expr)
 
     result = UnsizedConstruct(Struct(
@@ -40,7 +48,7 @@ def SampleEntryStruct(index_expr) -> Construct:
             lambda this: \
                 (SAMPLE_DIRECTORY_ENTRY_SIZE*new_index_expr(this)) \
                     + SAMPLE_DIRECTORY_AREA_OFFSET,
-            DirectoryEntryStruct
+            DirectoryEntryParser
         ),
         "parameter" / Pointer(
             lambda this: \
@@ -79,7 +87,7 @@ class SampleEntry:
 class SampleEntryAdapter(Adapter):
 
 
-    def _decode(self, obj, context, path):
+    def _decode(self, obj, context, path) -> SampleEntry:
         container = cast(SampleEntryContainer, obj)
 
         parent: Optional[Element] = None

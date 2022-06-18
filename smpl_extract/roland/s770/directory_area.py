@@ -4,13 +4,10 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
 
 from dataclasses import dataclass
-from typing import List
-from typing import cast
+from typing import Dict, cast
 from construct.core import Adapter
-from construct.core import Array
 from construct.core import Computed
 from construct.core import Construct
-from construct.core import ConstructError
 from construct.core import FixedSized
 from construct.core import PaddedString
 from construct.core import Int16ul
@@ -30,6 +27,8 @@ from .data_types import SAMPLE_DIRECTORY_AREA_SIZE
 from .data_types import MAX_NUM_VOLUME
 from .data_types import VOLUME_DIRECTORY_AREA_SIZE
 from util.constructs import MappingDefault
+from util.constructs import SafeListConstruct
+from util.constructs import UnsizedConstruct
 
 
 DirectoryEntryStruct = Struct(
@@ -56,7 +55,6 @@ DirectoryEntryStruct = Struct(
 )
 @dataclass
 class DirectoryEntryContainer:
-    name_raw:           bytes
     name:               str
     index:              int
     file_type:          FileType
@@ -69,58 +67,40 @@ class DirectoryEntryContainer:
     num_clusters:       int
 
 
-def DirectoryListStruct(num_entries: int) -> Construct:
-    result = Array(num_entries, DirectoryEntryStruct)
-    return result
+class DirectoryEntryAdapter(Adapter):
 
 
-class DirectoryListAdapter(Adapter):
-
-
-    def _fix_directory_entry(self, entry: DirectoryEntryContainer):
-        entry.forward_link_ptr  -= 0x8000
-        entry.backward_link_ptr -= 0x8000
-
-
-    def _decode(self, obj, context, path) -> List[DirectoryEntryContainer]:
-        del path  # unused
-
-        fat_version = 1
-        if "_" in context.keys() and "fat_version" in context._.keys():
-            fat_version = context._.fat_version
-
-        if fat_version not in (1, 2):
-            raise ConstructError(f"Unknown FAT version {fat_version}")
-        
-        fix_entry_f = lambda x: x  # do nothing
-        if fat_version == 2:
-            fix_entry_f = self._fix_directory_entry
-
-        directories = cast(List[DirectoryEntryContainer], obj)
-        filtered_directories = []
-        for directory_entry in directories:
+    def _decode(self, obj, context, path):
+        container = cast(DirectoryEntryContainer, obj)
+        version = 1
+        try:
+            version = context["_"]["_"]["_dir_version"]
+        except:
             try:
-                directory_entry.name = directory_entry.name_raw.decode("ascii")
-            except UnicodeDecodeError:
-                continue
-            disqualifiers = (
-                len(directory_entry.name) <= 0,
-                directory_entry.file_type == FileType.NONE
-            )
-            if any(disqualifiers):
-                continue
-            
-            fix_entry_f(directory_entry)
-            filtered_directories.append(directory_entry)
-
-        return filtered_directories
+                version = context["_"]["_dir_version"]
+            except:
+                pass
+        if version == 2:
+            container.backward_link_ptr -= 0x8000
+            container.forward_link_ptr -= 0x8000
+        return container
 
 
     def _encode(self, obj, context, path):
         raise NotImplementedError
 
 
-def DirectoryAreaStruct(
+DirectoryEntryParser = DirectoryEntryAdapter(DirectoryEntryStruct)
+
+
+def DirectoryListConstruct(num_entries: int) -> Construct:
+    result = UnsizedConstruct(
+        SafeListConstruct(num_entries, DirectoryEntryParser)
+    )
+    return result
+
+
+def DirectoryAreaConstruct(
     num_volumes:        int = MAX_NUM_VOLUME,
     num_performances:   int = MAX_NUM_PERFORMANCE,
     num_patches:        int = MAX_NUM_PATCH,
@@ -131,45 +111,35 @@ def DirectoryAreaStruct(
         "volume_directories"        /\
             FixedSized(
                 VOLUME_DIRECTORY_AREA_SIZE, 
-                DirectoryListAdapter(
-                    DirectoryListStruct(num_volumes)
-                )
+                DirectoryListConstruct(num_volumes)
             ),
         "performance_directories"   /\
             FixedSized(
                 PERFORMANCE_DIRECTORY_AREA_SIZE,
-                DirectoryListAdapter(
-                    DirectoryListStruct(num_performances)
-                )
+                DirectoryListConstruct(num_performances)
             ),
         "patch_directories"         /\
             FixedSized(
                 PATCH_DIRECTORY_AREA_SIZE, 
-                DirectoryListAdapter(
-                    DirectoryListStruct(num_patches)
-                )
+                DirectoryListConstruct(num_patches)
             ),
         "partial_directories"       /\
             FixedSized(
                 PARTIAL_DIRECTORY_AREA_SIZE, 
-                DirectoryListAdapter(
-                    DirectoryListStruct(num_partials)
-                )
+                DirectoryListConstruct(num_partials)
             ),
         "sample_directories"        /\
             FixedSized(
                 SAMPLE_DIRECTORY_AREA_SIZE, 
-                DirectoryListAdapter(
-                    DirectoryListStruct(num_samples)
-                )
+                DirectoryListConstruct(num_samples)
             )
     )
     return result
 @dataclass
 class DirectoryAreaContainer:
-    volume_directories:         List[DirectoryEntryContainer]
-    performance_directories:    List[DirectoryEntryContainer]
-    patch_directories:          List[DirectoryEntryContainer]
-    partial_directories:        List[DirectoryEntryContainer]
-    sample_directories:         List[DirectoryEntryContainer]
+    volume_directories:         Dict[int, DirectoryEntryContainer]
+    performance_directories:    Dict[int, DirectoryEntryContainer]
+    patch_directories:          Dict[int, DirectoryEntryContainer]
+    partial_directories:        Dict[int, DirectoryEntryContainer]
+    sample_directories:         Dict[int, DirectoryEntryContainer]
 

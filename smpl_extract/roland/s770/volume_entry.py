@@ -24,17 +24,17 @@ from .data_types import VOLUME_DIRECTORY_ENTRY_SIZE
 from .data_types import VOLUME_PARAMETER_AREA_OFFSET
 from .data_types import VOLUME_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
-from .directory_area import DirectoryEntryStruct
-from .parameter_area import VolumeParamEntry
+from .directory_area import DirectoryEntryParser
+from .parameter_area import VolumeParamEntryParser
 from .parameter_area import VolumeParamEntryContainer
 from .performance_entry import PerformanceEntryAdapter
-from .performance_entry import PerformanceEntryStruct
+from .performance_entry import PerformanceEntryConstruct
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
 from util.constructs import pass_expression_deeper
 
 
-def VolumeEntryStruct(index_expr) -> Construct:
+def VolumeEntryConstruct(index_expr) -> Construct:
     new_index_expr = pass_expression_deeper(index_expr)
 
     result = UnsizedConstruct(Struct(
@@ -47,17 +47,17 @@ def VolumeEntryStruct(index_expr) -> Construct:
             lambda this: \
                 (VOLUME_DIRECTORY_ENTRY_SIZE*new_index_expr(this)) \
                     + VOLUME_DIRECTORY_AREA_OFFSET,
-            DirectoryEntryStruct
+            DirectoryEntryParser
         ),
         "parameter" / Pointer(
             lambda this: \
                 (VOLUME_PARAMETER_ENTRY_SIZE*new_index_expr(this)) \
                 + VOLUME_PARAMETER_AREA_OFFSET,
-            VolumeParamEntry
+            VolumeParamEntryParser
         ),
         "performance_entries" / Lazy(SafeListConstruct(
             lambda this: len(this.parameter.performance_ptrs),
-            PerformanceEntryAdapter(PerformanceEntryStruct(
+            PerformanceEntryAdapter(PerformanceEntryConstruct(
                 lambda this: this.parameter.performance_ptrs[this._index]
             ))
         ))
@@ -128,7 +128,7 @@ def VolumeEntriesList(num_volumes: Any = MAX_NUM_VOLUME):
     result = SafeListConstruct(
         num_volumes, 
         VolumeEntryAdapter(
-            VolumeEntryStruct(lambda this: this._index)
+            VolumeEntryConstruct(lambda this: this._index)
         )
     )
     return result

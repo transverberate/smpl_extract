@@ -24,7 +24,7 @@ from .data_types import FAT_AREA_OFFSET
 from .data_types import ID_AREA_SIZE
 from elements import Image
 from .fat import FatArea
-from .fat import FatAreaAdapterStruct
+from .fat import FatAreaParser
 from .fat import RolandFileAllocationTable
 from .volume_entry import VolumeEntry
 from .volume_entry import VolumeEntriesList
@@ -142,8 +142,9 @@ IdAreaAdapterParser = IdAreaAdapter(IdAreaStruct)
 RolandS770ImageStruct = Struct(
     "id_area" / FixedSized(ID_AREA_SIZE, IdAreaAdapterParser),
     Seek(FAT_AREA_OFFSET),
-    "fat_area" / FatAreaAdapterStruct,
+    "fat_area" / FatAreaParser,
     "fat" / Computed(lambda this: this.fat_area.fat),
+    "_dir_version" / Computed(lambda this: this.fat_area.version),
     "volumes" / VolumeEntriesList(
         lambda this: this.id_area.num_volumes
     )

@@ -27,17 +27,17 @@ from .data_types import PERFORMANCE_DIRECTORY_ENTRY_SIZE
 from .data_types import PERFORMANCE_PARAMETER_AREA_OFFSET
 from .data_types import PERFORMANCE_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
-from .directory_area import DirectoryEntryStruct
-from .parameter_area import PerformanceParamEntry
+from .directory_area import DirectoryEntryParser
+from .parameter_area import PerformanceParamEntryParser
 from .parameter_area import PerformanceParamEntryContainer
 from .patch_entry import PatchEntryAdapter
-from .patch_entry import PatchEntryStruct
+from .patch_entry import PatchEntryConstruct
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
 
 
-def PerformanceEntryStruct(index_expr) -> Construct:
+def PerformanceEntryConstruct(index_expr) -> Construct:
     new_index_expr = pass_expression_deeper(index_expr)
 
     result = UnsizedConstruct(Struct(
@@ -50,17 +50,17 @@ def PerformanceEntryStruct(index_expr) -> Construct:
             lambda this: \
                 (PERFORMANCE_DIRECTORY_ENTRY_SIZE*new_index_expr(this)) \
                     + PERFORMANCE_DIRECTORY_AREA_OFFSET,
-            DirectoryEntryStruct
+            DirectoryEntryParser
         ),
         "parameter" / Pointer(
             lambda this: \
                 (PERFORMANCE_PARAMETER_ENTRY_SIZE*new_index_expr(this)) \
                 + PERFORMANCE_PARAMETER_AREA_OFFSET,
-            PerformanceParamEntry
+            PerformanceParamEntryParser
         ),
         "patch_entries" / Lazy(SafeListConstruct(
             lambda this: len(this.parameter.patch_list),
-            PatchEntryAdapter(PatchEntryStruct(lambda this: 
+            PatchEntryAdapter(PatchEntryConstruct(lambda this: 
                 this.parameter.patch_list[this._index]
             ))
         ))
@@ -135,6 +135,11 @@ class PerformanceEntryAdapter(Adapter):
             performance_path
         )
         context["parent"] = performance
+        try:
+            dir_version = context["_"]["_dir_version"]
+            context["_dir_version"] = dir_version
+        except KeyError as e:
+            pass
         
         return performance
 

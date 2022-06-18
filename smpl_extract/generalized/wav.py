@@ -211,11 +211,11 @@ class WavSampleAdapter(Adapter):
         raise NotImplementedError
 
 
-WavSampleStruct = WavSampleAdapter(RiffStruct)
+WavSampleBuilder = WavSampleAdapter(RiffStruct)
 
 
 def export_wav(sample: Sample, file_path: str):
     with open(file_path, "wb") as export_stream:
-        WavSampleStruct.build_stream(sample, export_stream)
+        WavSampleBuilder.build_stream(sample, export_stream)
     return
 

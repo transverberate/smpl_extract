@@ -67,7 +67,7 @@ class VolumeParamEntryAdapter(Adapter):
         raise NotImplementedError
 
 
-VolumeParamEntry = VolumeParamEntryAdapter(VolumeParamEntryStruct)
+VolumeParamEntryParser = VolumeParamEntryAdapter(VolumeParamEntryStruct)
 
 
 PerformanceParamEntryStruct = Struct(
@@ -129,7 +129,7 @@ class PerformanceParamEntryAdapter(Adapter):
         raise NotImplementedError
 
 
-PerformanceParamEntry = PerformanceParamEntryAdapter(PerformanceParamEntryStruct)
+PerformanceParamEntryParser = PerformanceParamEntryAdapter(PerformanceParamEntryStruct)
 
 
 BenderParamStruct = Struct(
@@ -278,7 +278,7 @@ class PatchParamEntryAdapter(Adapter):
         raise NotImplementedError
 
 
-PatchParamEntry = PatchParamEntryAdapter(PatchParamEntryStruct)
+PatchParamEntryParser = PatchParamEntryAdapter(PatchParamEntryStruct)
 
 
 PartialParamSampleSectionStruct = Struct(
@@ -458,13 +458,13 @@ SampleParamEntryStruct = Struct(
     "loop_mode" / MappingDefault(
         Int8ul,
         {
-            LoopMode.FORWARD_END: 0,
-            LoopMode.FORWARD_RELEASE: 1,
-            LoopMode.ONESHOT: 2,
-            LoopMode.FORWARD_ONESHOT: 3,
-            LoopMode.ALTERNATE: 4,
-            LoopMode.REVERSE_ONESHOT: 5,
-            LoopMode.REVERSE_LOOP: 6
+            LoopMode.FORWARD_END:       0,
+            LoopMode.FORWARD_RELEASE:   1,
+            LoopMode.ONESHOT:           2,
+            LoopMode.FORWARD_ONESHOT:   3,
+            LoopMode.ALTERNATE:         4,
+            LoopMode.REVERSE_ONESHOT:   5,
+            LoopMode.REVERSE_LOOP:      6
         }, 
         (LoopMode.FORWARD_END, 0)
     ),
@@ -477,8 +477,8 @@ SampleParamEntryStruct = Struct(
         "sample_mode" / MappingDefault(
             Nibble,
             {
-                SampleMode.MONO: 0,
-                SampleMode.STEREO: 1
+                SampleMode.MONO:    0,
+                SampleMode.STEREO:  1
             },
             (SampleMode.MONO, 0)
         ),
@@ -520,7 +520,7 @@ class SampleParamEntryContainer:
     original_key: int
 
 
-def ParamAreaStruct(
+def ParamAreaConstruct(
     num_volumes:        int = MAX_NUM_VOLUME,
     num_performances:   int = MAX_NUM_PERFORMANCE,
     num_patches:        int = MAX_NUM_PATCH,
@@ -533,7 +533,7 @@ def ParamAreaStruct(
                 VOLUME_PARAMETER_AREA_SIZE, 
                 SafeListConstruct(
                     num_volumes,
-                    VolumeParamEntry
+                    VolumeParamEntryParser
                 )
             ),
         "performance_params"   /\
@@ -541,7 +541,7 @@ def ParamAreaStruct(
                 PERFORMANCE_PARAMETER_AREA_SIZE,
                 SafeListConstruct(
                     num_performances,
-                    PerformanceParamEntry
+                    PerformanceParamEntryParser
                 )
             ),
         "patch_params"         /\
@@ -549,7 +549,7 @@ def ParamAreaStruct(
                 PATCH_PARAMETER_AREA_SIZE, 
                 SafeListConstruct(
                     num_patches,
-                    PatchParamEntry
+                    PatchParamEntryParser
                 )
             ),
         "partial_params"       /\

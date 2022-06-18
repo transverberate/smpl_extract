@@ -193,5 +193,5 @@ class FatAreaAdapter(Adapter):
         raise NotImplementedError
 
 
-FatAreaAdapterStruct = FatAreaAdapter(FatAreaStruct)
+FatAreaParser = FatAreaAdapter(FatAreaStruct)
 
