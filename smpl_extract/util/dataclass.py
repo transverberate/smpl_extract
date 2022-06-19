@@ -71,4 +71,12 @@ def make_itemizable(cls):  # decorator
 
     setattr(cls, "itemize", func)
     return cls
-        
+
+
+def get_common_field_args(common_dataclass: Any, source_instance):
+    result = {
+        k.name: getattr(source_instance, k.name)
+        for k in fields(common_dataclass)
+    }
+    return result
+

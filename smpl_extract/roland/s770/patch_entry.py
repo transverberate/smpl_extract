@@ -3,7 +3,7 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from dataclasses import field
 from construct.core import Adapter
 from construct.core import Array
@@ -40,6 +40,7 @@ from .partial_entry import PartialEntryConstruct
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
+from util.dataclass import get_common_field_args
 
 
 BenderParamStruct = Struct(
@@ -50,10 +51,10 @@ BenderParamStruct = Struct(
 )
 @dataclass
 class BenderParamContainer:
-    pitch_ctrl_up:      int
-    pitch_ctrl_down:    int
-    tva_ctrl:           int
-    tvf_ctrl:           int
+    pitch_ctrl_up:      int = 0
+    pitch_ctrl_down:    int = 0
+    tva_ctrl:           int = 0
+    tvf_ctrl:           int = 0
 
 
 AfterTouchParamStruct = Struct(
@@ -67,13 +68,13 @@ AfterTouchParamStruct = Struct(
 )
 @dataclass
 class AfterTouchParamContainer:
-    pitch_ctrl:     int
-    tva_ctrl:       int
-    tvf_ctrl:       int
-    lfo_rate_ctrl:  int
-    lfo_pitch_ctrl: int
-    lfo_tva_depth:  int
-    lfo_tvf_depth:  int
+    pitch_ctrl:     int = 0
+    tva_ctrl:       int = 0
+    tvf_ctrl:       int = 0
+    lfo_rate_ctrl:  int = 0
+    lfo_pitch_ctrl: int = 0
+    lfo_tva_depth:  int = 0
+    lfo_tvf_depth:  int = 0
 
 
 ModulationParamStruct = Struct(
@@ -84,10 +85,10 @@ ModulationParamStruct = Struct(
 )
 @dataclass
 class ModulationParamContainer:
-    lfo_rate_ctrl:  int
-    lfo_pitch_ctrl: int
-    lfo_tva_depth:  int
-    lfo_tvf_depth:  int
+    lfo_rate_ctrl:  int = 0
+    lfo_pitch_ctrl: int = 0
+    lfo_tva_depth:  int = 0
+    lfo_tvf_depth:  int = 0
 
 
 ControllerParamStruct = Struct(
@@ -102,14 +103,46 @@ ControllerParamStruct = Struct(
 )
 @dataclass
 class ControllerParamContainer:
-    ctrl_num:       int
-    pitch_ctrl:     int
-    tva_ctrl:       int
-    tvf_ctrl:       int
-    lfo_rate_ctrl:  int
-    lfo_pitch_ctrl: int
-    lfo_tva_depth:  int
-    lfo_tvf_depth:  int
+    ctrl_num:       int = 0
+    pitch_ctrl:     int = 0
+    tva_ctrl:       int = 0
+    tvf_ctrl:       int = 0
+    lfo_rate_ctrl:  int = 0
+    lfo_pitch_ctrl: int = 0
+    lfo_tva_depth:  int = 0
+    lfo_tvf_depth:  int = 0
+
+
+@dataclass
+class PatchParamEntryCommon:
+    program_change_num:     int = 0
+    stereo_mix_level:       int = 0
+    total_pan:              int = 0
+    patch_level:            int = 0
+    output_assign_8:        int = 0
+    priority:               int = 0
+    cutoff:                 int = 0
+    velocity_sensitivity:   int = 0
+    octave_shift:           int = 0
+    coarse_tune:            int = 0
+    fine_tune:              int = 0
+    smt_ctrl_selection:     int = 0
+    smt_ctrl_sensitivity:   int = 0
+    out_assign:             int = 0
+    analog_feel:            int = 0
+
+    keys_partial_selection: List[int] = \
+        field(default_factory=list)
+    keys_assign_type: List[int] = \
+        field(default_factory=list)
+    bender: BenderParamContainer = \
+        field(default_factory=BenderParamContainer)
+    after_touch: AfterTouchParamContainer = \
+        field(default_factory=AfterTouchParamContainer)
+    modulation: ModulationParamContainer = \
+        field(default_factory=ModulationParamContainer)
+    controller: ControllerParamContainer = \
+        field(default_factory=ControllerParamContainer)
 
 
 PatchParamEntryStruct = Struct(
@@ -145,31 +178,10 @@ PatchParamEntryStruct = Struct(
     Padding(0x50)
 )
 @dataclass
-class PatchParamEntryContainer:
-    name:                   str
-    index:                  int
-    program_change_num:     int
-    stereo_mix_level:       int
-    total_pan:              int
-    patch_level:            int
-    output_assign_8:        int
-    priority:               int
-    cutoff:                 int
-    velocity_sensitivity:   int
-    octave_shift:           int
-    coarse_tune:            int
-    fine_tune:              int
-    smt_ctrl_selection:     int
-    smt_ctrl_sensitivity:   int
-    out_assign:             int
-    analog_feel:            int
-    keys_partial_selection: List[int]
-    keys_assign_type:       List[int]
-    bender:                 BenderParamContainer
-    after_touch:            AfterTouchParamContainer
-    modulation:             ModulationParamContainer
-    controller:             ControllerParamContainer
-    partial_list:           List[int]
+class PatchParamEntryContainer(PatchParamEntryCommon):
+    name:                   str         = ""
+    index:                  int         = 0
+    partial_list:           List[int]   = field(default_factory=list)
 
 
 class PatchParamEntryAdapter(Adapter):
@@ -229,10 +241,10 @@ class PatchEntryContainer:
 
 
 @dataclass
-class PatchEntry(Traversable):
-    directory_name:     str
-    parameter_name:     str
-    _f_partial_entries: Callable
+class PatchEntry(PatchParamEntryCommon, Traversable):
+    directory_name:     str                     = ""
+    parameter_name:     str                     = ""
+    _f_partial_entries: Callable                = lambda x: None
     _parent:            Optional[Element]       = None
     _path:              List[str]               = field(default_factory=list)
 
@@ -281,12 +293,18 @@ class PatchEntryAdapter(Adapter):
         name = container.directory.name
         patch_path = element_path + [name]
 
+        common_args = get_common_field_args(
+            PatchParamEntryCommon, 
+            container.parameter
+        )
+
         patch = PatchEntry(
-            container.directory.name,
-            container.parameter.name,
-            container.partial_entries,
-            parent,
-            patch_path
+            **common_args,
+            directory_name=container.directory.name,
+            parameter_name=container.parameter.name,
+            _f_partial_entries=container.partial_entries,
+            _parent=parent,
+            _path=patch_path
         )
         context["parent"] = patch
         try:

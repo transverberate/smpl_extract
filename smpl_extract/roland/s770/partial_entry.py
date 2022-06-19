@@ -35,11 +35,25 @@ from .data_types import PARTIAL_PARAMETER_AREA_OFFSET
 from .data_types import PARTIAL_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
+from .sample_entry import SampleEntry
 from .sample_entry import SampleEntryAdapter
-from .sample_entry import SampleEntryContainer
 from .sample_entry import SampleEntryConstruct
 from util.constructs import pass_expression_deeper
 from util.constructs import UnsizedConstruct
+from util.dataclass import get_common_field_args
+
+
+@dataclass
+class PartialParamSampleSectionCommon:
+    pitch_kf:               int = 0
+    sample_level:           int = 0
+    pan:                    int = 0
+    coarse_tune:            int = 0
+    fine_tune:              int = 0
+    smt_velocity_lower:     int = 0
+    smt_fade_with_lower:    int = 0
+    smt_velocity_upper:     int = 0
+    smt_fade_with_upper:    int = 0
 
 
 PartialParamSampleSectionStruct = Struct(
@@ -55,17 +69,8 @@ PartialParamSampleSectionStruct = Struct(
     "smt_fade_with_upper"   / Int8ul,
 )
 @dataclass
-class PartialParamSampleSectionContainer:
-    sample_selection:       int
-    pitch_kf:               int
-    sample_level:           int
-    pan:                    int
-    coarse_tune:            int
-    fine_tune:              int
-    smt_velocity_lower:     int
-    smt_fade_with_lower:    int
-    smt_velocity_upper:     int
-    smt_fade_with_upper:    int
+class PartialParamSampleSectionContainer(PartialParamSampleSectionCommon):
+    sample_selection:       int = 0
 
 
 PartialParamTvfSectionStruct = Struct(
@@ -87,21 +92,21 @@ PartialParamTvfSectionStruct = Struct(
 )
 @dataclass
 class PartialParamTvfSectionContainer:
-    filter_mode:            int
-    cutoff:                 int
-    resonance:              int
-    velocity_curve_type:    int
-    velocity_curve_ratio:   int
-    time_velocity_sens:     int
-    cutoff_velocity_sens:   int
-    levels:                 List[int]
-    times:                  List[int]
-    env_tvf_depth:          int
-    env_pitch_depth:        int
-    tvf_kf_point:           int
-    env_time_kf:            int
-    env_depth_kf:           int
-    cutoff_kf:              int
+    filter_mode:            int         = 0
+    cutoff:                 int         = 0
+    resonance:              int         = 0
+    velocity_curve_type:    int         = 0
+    velocity_curve_ratio:   int         = 0
+    time_velocity_sens:     int         = 0
+    cutoff_velocity_sens:   int         = 0
+    levels:                 List[int]   = field(default_factory=list)
+    times:                  List[int]   = field(default_factory=list)
+    env_tvf_depth:          int         = 0
+    env_pitch_depth:        int         = 0
+    tvf_kf_point:           int         = 0
+    env_time_kf:            int         = 0
+    env_depth_kf:           int         = 0
+    cutoff_kf:              int         = 0
 
 
 PartialParamTvaSectionStruct = Struct(
@@ -118,14 +123,14 @@ PartialParamTvaSectionStruct = Struct(
 )
 @dataclass
 class PartialParamTvaSectionContainer:
-    velocity_curve_type: int
-    velocity_curve_ratio: int
-    time_velocity_sensitivity: int
-    levels: List[int]
-    times: List[int]
-    tva_kf_point: int
-    env_time_kf: int
-    level_kf: int
+    velocity_curve_type:        int         = 0
+    velocity_curve_ratio:       int         = 0
+    time_velocity_sensitivity:  int         = 0
+    levels:                     List[int]   = field(default_factory=list)
+    times:                      List[int]   = field(default_factory=list)
+    tva_kf_point:               int         = 0
+    env_time_kf:                int         = 0
+    level_kf:                   int         = 0
 
 
 PartialParamLfoSectionStruct = Struct(
@@ -141,15 +146,34 @@ PartialParamLfoSectionStruct = Struct(
 )
 @dataclass
 class PartialParamLfoSectionContainer:
-    wave_form:              int
-    rate:                   int
-    key_sync:               int
-    delay:                  int
-    delay_kf:               int
-    detune:                 int
-    pitch:                  int
-    tvf_modulation_depth:   int
-    tva_modulation_depth:   int
+    wave_form:              int = 0
+    rate:                   int = 0
+    key_sync:               int = 0
+    delay:                  int = 0
+    delay_kf:               int = 0
+    detune:                 int = 0
+    pitch:                  int = 0
+    tvf_modulation_depth:   int = 0
+    tva_modulation_depth:   int = 0
+
+
+@dataclass
+class PartialParamCommon:
+    output_assign_8:    int = 0
+    stereo_mix_level:   int = 0
+    partial_level:      int = 0
+    output_assign_6:    int = 0
+    pan:                int = 0
+    course_tune:        int = 0
+    fine_tune:          int = 0
+    breath_cntrl:       int = 0
+
+    tvf: PartialParamTvfSectionContainer = \
+        field(default_factory=PartialParamTvfSectionContainer)
+    tva: PartialParamTvaSectionContainer = \
+        field(default_factory=PartialParamTvaSectionContainer)
+    lfo_generator: PartialParamLfoSectionContainer = \
+        field(default_factory=PartialParamLfoSectionContainer)
 
 
 PartialParamEntryStruct = Struct(
@@ -176,24 +200,18 @@ PartialParamEntryStruct = Struct(
     Padding(7)
 )
 @dataclass
-class PartialParamEntryContainer:
-    name:               str
-    index:              int
-    sample_1:           PartialParamSampleSectionContainer
-    output_assign_8:    int
-    stereo_mix_level:   int
-    partial_level:      int
-    output_assign_6:    int
-    sample_2:           PartialParamSampleSectionContainer
-    pan:                int
-    course_tune:        int
-    fine_tune:          int
-    breath_cntrl:       int
-    sample_3:           PartialParamSampleSectionContainer
-    sample_4:           PartialParamSampleSectionContainer
-    tvf:                PartialParamTvfSectionContainer
-    tva:                PartialParamTvaSectionContainer
-    lfo_generator:      PartialParamLfoSectionContainer
+class PartialParamEntryContainer(PartialParamCommon):
+    name:       str = ""
+    index:      int = 0
+
+    sample_1: PartialParamSampleSectionContainer = \
+        field(default_factory=PartialParamSampleSectionContainer)
+    sample_2: PartialParamSampleSectionContainer = \
+        field(default_factory=PartialParamSampleSectionContainer)
+    sample_3: PartialParamSampleSectionContainer = \
+        field(default_factory=PartialParamSampleSectionContainer)
+    sample_4: PartialParamSampleSectionContainer = \
+        field(default_factory=PartialParamSampleSectionContainer)
 
 
 def PartialEntryConstruct(index_expr) -> Construct:
@@ -227,17 +245,8 @@ class PartialEntryContainer:
 
 
 @dataclass
-class SampleEntryReference:
-    sample_entry:           SampleEntryContainer
-    pitch_kf:               int
-    sample_level:           int
-    pan:                    int
-    coarse_tune:            int
-    fine_tune:              int
-    smt_velocity_lower:     int
-    smt_fade_with_lower:    int
-    smt_velocity_upper:     int
-    smt_fade_with_upper:    int
+class SampleEntryReference(PartialParamSampleSectionCommon):
+    sample_entry: SampleEntry = field(default_factory=SampleEntry)
 
 
 class SampleEntryReferenceAdapter(Subconstruct):
@@ -279,10 +288,12 @@ class SampleEntryReferenceAdapter(Subconstruct):
 
 
 @dataclass
-class PartialEntry(Traversable):
-    directory_name:             str
-    parameter_name:             str
-    sample_entry_references:    List[SampleEntryReference]
+class PartialEntry(PartialParamCommon, Traversable):
+    directory_name: str = ""
+    parameter_name: str = ""
+
+    sample_entry_references: List[SampleEntryReference] = \
+        field(default_factory=list)
 
     _parent:    Optional[Element]       = None
     _path:      List[str]               = field(default_factory=list)
@@ -355,12 +366,18 @@ class PartialEntryAdapter(Subconstruct):
         name = container.directory.name
         partial_path = element_path + [name]
 
+        common_args = get_common_field_args(
+            PartialParamCommon, 
+            container.parameter
+        )
+
         partial = PartialEntry(
-            container.directory.name,
-            container.parameter.name,
-            sample_references,
-            parent,
-            partial_path
+            **common_args,
+            directory_name=container.directory.name,
+            parameter_name=container.parameter.name,
+            sample_entry_references=sample_references,
+            _parent=parent,
+            _path=partial_path
         )
         context["parent"] = partial
         try:

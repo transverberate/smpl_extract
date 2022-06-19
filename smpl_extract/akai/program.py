@@ -40,6 +40,7 @@ from midi import MidiNote
 from util.constructs import BoolConstruct
 from util.constructs import EnumWrapper
 from util.constructs import MappingDefault
+from util.dataclass import get_common_field_args
 from util.dataclass import make_itemizable
 
 
@@ -288,9 +289,7 @@ class ProgramAdapter(Adapter):
 
     def _decode(self, obj: ProgramContainer, context, path)->Program:
         del path  # Unused
-        header_args = {
-            k.name: obj.header[k.name] for k in fields(ProgramHeaderCommon)
-        }
+        header_args = get_common_field_args(ProgramHeaderCommon, obj.header)
 
         file_name = context.get("name", obj.header.program_name)
         type_name = str(context.get("type", "AKAI Program"))

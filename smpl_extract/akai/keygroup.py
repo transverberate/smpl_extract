@@ -33,6 +33,7 @@ from util.constructs import MappingDefault
 from util.constructs import PaddedGeneral
 from util.constructs import sanitize_container
 from util.constructs import SlicingGeneral
+from util.dataclass import get_common_field_args
 from util.dataclass import make_itemizable
 
 
@@ -270,9 +271,7 @@ class KeygroupAdapter(Adapter):
             )
             velocity_zones.append(velocity_zone)
 
-        common_attribs = {
-            k.name: container[k.name] for k in fields(KeygroupCommon)
-        }
+        common_attribs = get_common_field_args(KeygroupCommon, container)
 
         keygroup = Keygroup(
             **common_attribs,

@@ -10,6 +10,7 @@ from construct.core import Adapter
 from construct.core import Bitwise
 from construct.core import Computed
 from construct.core import Construct
+from construct.core import ExprAdapter
 from construct.core import ExprValidator
 from construct.core import Int16ul
 from construct.core import Int32ul
@@ -36,9 +37,11 @@ from .data_types import SAMPLE_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
 from .fat import RolandFileAllocationTable
+from midi import MidiNote
 from util.constructs import MappingDefault
 from util.constructs import pass_expression_deeper
 from util.constructs import UnsizedConstruct
+from util.dataclass import get_common_field_args
 from util.fat import FatNotPresent
 
 
@@ -49,19 +52,78 @@ SampleParamLoopPointStruct = Struct(
 )
 @dataclass 
 class SampleParamLoopPointContainer:
-    raw_value:  int 
-    fine:       int
-    address:    int
+    raw_value:  int = 0
+    fine:       int = 0
+    address:    int = 0
 
+
+@dataclass
+class SampleParamLoopPoint:
+    fine:       int = 0
+    address:    int = 0
+
+
+class SampleParamLoopPointAdapter(Adapter):
+
+
+    def _decode(self, obj, context, path):
+        del context, path  # unused
+        container = cast(SampleParamLoopPointContainer, obj)
+        result = SampleParamLoopPoint(
+            container.fine,
+            container.address
+        )
+        return result
+
+
+    def _encode(self, obj, context, path):
+        raise NotImplementedError
+
+
+SampleParamLoopPointParser = SampleParamLoopPointAdapter(
+    SampleParamLoopPointStruct
+)
+
+
+def RolandMidiNote(subcon: Construct)->ExprAdapter:
+    result = ExprAdapter(
+        subcon, 
+        lambda x, y: MidiNote.from_midi_byte(x),
+        lambda x, y: MidiNote.to_midi_byte(x)  # type: ignore
+    )
+    return result
+
+
+@dataclass
+class SampleParamCommon:
+    sustain_loop_enable:    int = 0
+    sustain_loop_tune:      int = 0
+    release_loop_tune:      int = 0
+    seg_top:                int = 0
+    seg_length:             int = 0
+    original_key:           MidiNote = MidiNote.from_string("C4")
+    loop_mode:              LoopMode = LoopMode.FORWARD_END
+
+    start_sample: SampleParamLoopPoint = \
+        field(default_factory=SampleParamLoopPoint)
+    sustain_loop_start: SampleParamLoopPoint = \
+        field(default_factory=SampleParamLoopPoint)
+    sustain_loop_end: SampleParamLoopPoint = \
+        field(default_factory=SampleParamLoopPoint)
+    release_loop_start: SampleParamLoopPoint = \
+        field(default_factory=SampleParamLoopPoint)
+    release_loop_end: SampleParamLoopPoint = \
+        field(default_factory=SampleParamLoopPoint)
+    
 
 SampleParamEntryStruct = Struct(
     "name"                  / PaddedString(16, encoding="ascii"),
     "index"                 / Computed(lambda this: this._index),
-    "start_sample"          / SampleParamLoopPointStruct,
-    "sustain_loop_start"    / SampleParamLoopPointStruct,
-    "sustain_loop_end"      / SampleParamLoopPointStruct,
-    "release_loop_start"    / SampleParamLoopPointStruct,
-    "release_loop_end"      / SampleParamLoopPointStruct,
+    "start_sample"          / SampleParamLoopPointParser,
+    "sustain_loop_start"    / SampleParamLoopPointParser,
+    "sustain_loop_end"      / SampleParamLoopPointParser,
+    "release_loop_start"    / SampleParamLoopPointParser,
+    "release_loop_end"      / SampleParamLoopPointParser,
     "loop_mode"             / MappingDefault(
         Int8ul,
         {
@@ -103,30 +165,20 @@ SampleParamEntryStruct = Struct(
                 }
             )
     )),
-    "original_key"          / Int8ul,
+    "original_key"          / RolandMidiNote(Int8ul),
     Padding(2)
 )
 @dataclass
 class SampleParamOptionsSection:
-    sample_mode:        SampleMode
-    sampling_frequency: int
+    sample_mode:        SampleMode  = SampleMode.MONO
+    sampling_frequency: int         = 48000
 @dataclass
-class SampleParamEntryContainer:
-    name:                   str
-    index:                  int
-    start_sample:           SampleParamLoopPointContainer
-    sustain_loop_start:     SampleParamLoopPointContainer
-    sustain_loop_end:       SampleParamLoopPointContainer
-    release_loop_start:     SampleParamLoopPointContainer
-    release_loop_end:       SampleParamLoopPointContainer
-    loop_mode:              LoopMode
-    sustain_loop_enable:    int
-    sustain_loop_tune:      int
-    release_loop_tune:      int
-    seg_top:                int
-    seg_length:             int
-    sample_options:         SampleParamOptionsSection
-    original_key:           int
+class SampleParamEntryContainer(SampleParamCommon):
+    name:                   str = ""
+    index:                  int = 0
+
+    sample_options: SampleParamOptionsSection = \
+        field(default_factory=SampleParamOptionsSection)
 
 
 def SampleEntryConstruct(index_expr) -> Construct:
@@ -160,12 +212,11 @@ class SampleEntryContainer:
 
 
 @dataclass
-class SampleEntry:
-    index:          int
-    directory_name: str
-    parameter_name: str
+class SampleEntry(SampleParamCommon, SampleParamOptionsSection):
+    directory_name: str                     = ""
+    parameter_name: str                     = ""
 
-    _data_stream:   IOBase
+    _data_stream:   IOBase                  = field(default_factory=IOBase)
     _parent:        Optional[Element]       = None
     _path:          List[str]               = field(default_factory=list)
 
@@ -202,13 +253,24 @@ class SampleEntryAdapter(Adapter):
         sample_path = element_path + [name]
         
         data_stream = fat.get_file(container.directory.fat_entry)
+
+        common_args = get_common_field_args(
+            SampleParamCommon,
+            container.parameter
+        )
+        options_args = get_common_field_args(
+            SampleParamOptionsSection,
+            container.parameter.sample_options
+        )
+
         result = SampleEntry(
-            container.index,
-            container.directory.name,
-            container.parameter.name,
-            data_stream,
-            parent,
-            sample_path
+            **common_args,
+            **options_args,
+            directory_name=container.directory.name,
+            parameter_name=container.parameter.name,
+            _data_stream=data_stream,
+            _parent=parent,
+            _path=sample_path
         )
         return result
 

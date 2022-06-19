@@ -40,6 +40,25 @@ from .patch_entry import PatchEntryConstruct
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
+from util.dataclass import get_common_field_args
+
+
+@dataclass
+class PerformanceParamCommon:
+    parts_patch_selection:      List[int]   = field(default_factory=list)
+    midi_channel_data:          List[int]   = field(default_factory=list)
+    parts_level:                List[int]   = field(default_factory=list)
+    parts_zone_lower:           List[int]   = field(default_factory=list)
+    parts_zone_upper:           List[int]   = field(default_factory=list)
+    parts_program_change:       int         = 0
+    parts_pitch_bend:           int         = 0
+    parts_modulation:           int         = 0
+    parts_hold_pedal:           int         = 0
+    parts_bend_range:           int         = 0
+    parts_midi_volume:          int         = 0
+    parts_after_touch_switch:   int         = 0
+    parts_after_touch_mode:     int         = 0
+    velocity_curve_type_data:   List[int]   = field(default_factory=list)
 
 
 PerformanceParamEntryStruct = Struct(
@@ -65,24 +84,10 @@ PerformanceParamEntryStruct = Struct(
     Padding(0xC0)
 )
 @dataclass
-class PerformanceParamEntryContainer:
-    name:                       str
-    index:                      int
-    parts_patch_selection:      List[int] 
-    midi_channel_data:          List[int]
-    parts_level:                List[int]
-    parts_zone_lower:           List[int]
-    parts_zone_upper:           List[int]
-    parts_program_change:       int
-    parts_pitch_bend:           int
-    parts_modulation:           int
-    parts_hold_pedal:           int
-    parts_bend_range:           int
-    parts_midi_volume:          int
-    parts_after_touch_switch:   int
-    parts_after_touch_mode:     int
-    velocity_curve_type_data:   List[int]
-    patch_list:                 List[int]
+class PerformanceParamEntryContainer(PerformanceParamCommon):
+    name:                       str         = ""
+    index:                      int         = 0
+    patch_list:                 List[int]   = field(default_factory=list)
 
 
 class PerformanceParamEntryAdapter(Adapter):
@@ -112,7 +117,7 @@ def PerformanceEntryConstruct(index_expr) -> Construct:
             Computed(lambda this: new_index_expr(this)), 
             lambda obj, ctx: 0 <= obj < MAX_NUM_PERFORMANCE
         ),
-        "index" / Computed(new_index_expr),
+        "index"     / Computed(new_index_expr),
         "directory" / Pointer(
             lambda this: \
                 (PERFORMANCE_DIRECTORY_ENTRY_SIZE*new_index_expr(this)) \
@@ -142,10 +147,10 @@ class PerformanceEntryContainer:
 
 
 @dataclass
-class PerformanceEntry(Traversable):
-    directory_name:     str
-    parameter_name:     str
-    _f_patch_entries:   Callable
+class PerformanceEntry(PerformanceParamCommon, Traversable):
+    directory_name:     str                     = ""
+    parameter_name:     str                     = ""
+    _f_patch_entries:   Callable                = lambda x: None
     _parent:            Optional[Element]       = None
     _path:              List[str]               = field(default_factory=list)
 
@@ -194,12 +199,18 @@ class PerformanceEntryAdapter(Adapter):
         name = container.directory.name
         performance_path = element_path + [name]
 
+        common_args = get_common_field_args(
+            PerformanceParamCommon, 
+            container.parameter
+        )
+
         performance = PerformanceEntry(
-            container.directory.name,
-            container.parameter.name,
-            container.patch_entries,
-            parent,
-            performance_path
+            **common_args,
+            directory_name=container.directory.name,
+            parameter_name=container.parameter.name,
+            _f_patch_entries=container.patch_entries,
+            _parent=parent,
+            _path=performance_path
         )
         context["parent"] = performance
         try:
