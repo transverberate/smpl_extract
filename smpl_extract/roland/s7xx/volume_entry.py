@@ -118,7 +118,7 @@ class VolumeEntry(Traversable):
     _context:               Dict
 
     type_id:                ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
-    type_name:              ClassVar[str]           = "Roland S-770 Volume"
+    type_name:              ClassVar[str]           = "Roland S-7xx Volume"
 
 
     def __post_init__(self):

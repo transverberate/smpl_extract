@@ -223,7 +223,7 @@ class SampleEntry(SampleParamCommon, SampleParamOptionsSection, Element):
     _path:          List[str]               = field(default_factory=list)
 
     type_id:        ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
-    type_name:      ClassVar[str]           = "Roland S-770 Sample"
+    type_name:      ClassVar[str]           = "Roland S-7xx Sample"
 
 
     @property

@@ -159,7 +159,7 @@ class PerformanceEntry(PerformanceParamCommon, Traversable):
     _path:              List[str]               = field(default_factory=list)
 
     type_id:            ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
-    type_name:          ClassVar[str]           = "Roland S-770 Performance"
+    type_name:          ClassVar[str]           = "Roland S-7xx Performance"
 
 
     def __post_init__(self):

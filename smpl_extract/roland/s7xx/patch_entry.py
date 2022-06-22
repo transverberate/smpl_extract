@@ -251,7 +251,7 @@ class PatchEntry(PatchParamEntryCommon, Traversable):
     _path:              List[str]               = field(default_factory=list)
 
     type_id:            ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
-    type_name:          ClassVar[str]           = "Roland S-770 Patch"
+    type_name:          ClassVar[str]           = "Roland S-7xx Patch"
 
 
     def __post_init__(self):

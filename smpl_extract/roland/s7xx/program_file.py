@@ -41,7 +41,7 @@ class ProgramFile(PatchParamEntryCommon,  ProgramElement):
     _parent:            Optional[Element]       = None
     _path:              List[str]               = field(default_factory=list)
 
-    type_name:          ClassVar[str]           = "Roland S-770 Program"
+    type_name:          ClassVar[str]           = "Roland S-7xx Program"
 
 
     # needed to stop unimplemented abstract method exception

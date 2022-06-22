@@ -299,7 +299,7 @@ class PartialEntry(PartialParamCommon, Traversable):
     _path:      List[str]               = field(default_factory=list)
 
     type_id:    ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
-    type_name:  ClassVar[str]           = "Roland S-770 Partial"
+    type_name:  ClassVar[str]           = "Roland S-7xx Partial"
 
 
     def __post_init__(self):

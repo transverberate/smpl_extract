@@ -190,7 +190,7 @@ class SampleFile(
     _parent:            Optional[Element]       = None
     _path:              List[str]               = field(default_factory=list)
 
-    type_name:          ClassVar[str]           = "Roland S-770 Sample"
+    type_name:          ClassVar[str]           = "Roland S-7xx Sample"
     bytes_per_sample:   ClassVar[int]           = ROLAND_SAMPLE_WIDTH
 
     

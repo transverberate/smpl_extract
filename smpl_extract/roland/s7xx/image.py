@@ -33,7 +33,7 @@ from .volume_entry import VolumeEntriesList
 
 IdAreaStruct = Struct(
     "revision" / Int32ul,
-    "s770_str" / PaddedString(10, encoding="ascii"),
+    "s7xx_str" / PaddedString(10, encoding="ascii"),
     Padding(2),
     "empty_str" / PaddedString(15, encoding="ascii"),
     Padding(1),
@@ -54,7 +54,7 @@ IdAreaStruct = Struct(
 @dataclass
 class IdAreaContainer:
     revision: int
-    s770_str: str
+    s7xx_str: str
     empty_str: str 
     version_str: str
     copyright_str: str
@@ -85,7 +85,7 @@ class IdArea:
 class IdAreaAdapter(Adapter):
 
 
-    _S770_REGEX = re.compile(r"\s*S770\s+MR25A", flags=re.I)
+    _S7XX_REGEX = re.compile(r"\s*S7\d\d\s+MR25A", flags=re.I)
     _VERSION_REGEX = re.compile(
         r"\s*(S-\d+)\s+(\w+)\s+Disk\s+Ver\.?\s+(\d(\.\d+)?)\s*",
         flags=re.I
@@ -99,7 +99,7 @@ class IdAreaAdapter(Adapter):
         container = cast(IdAreaContainer, obj)
         
         verifications = (
-            (container.s770_str, self._S770_REGEX),
+            (container.s7xx_str, self._S7XX_REGEX),
             (container.version_str, self._VERSION_REGEX),
             (container.copyright_str, self._COPYRIGHT_REGEX)
         )
@@ -140,7 +140,7 @@ class IdAreaAdapter(Adapter):
 IdAreaAdapterParser = IdAreaAdapter(IdAreaStruct)
 
 
-def is_roland_s770_image(stream: IOBase)->bool:
+def is_roland_s7xx_image(stream: IOBase)->bool:
     stream_head = stream.tell()
     stream.seek(0, SEEK_SET)
 
@@ -154,7 +154,7 @@ def is_roland_s770_image(stream: IOBase)->bool:
     return result
 
 
-RolandS770ImageStruct = Struct(
+RolandS7xxImageStruct = Struct(
     "id_area" / FixedSized(ID_AREA_SIZE, IdAreaAdapterParser),
     Seek(FAT_AREA_OFFSET),
     "fat_area" / FatAreaParser,
@@ -165,7 +165,7 @@ RolandS770ImageStruct = Struct(
     )
 )
 @dataclass
-class RolandS770ImageContainer:
+class RolandS7xxImageContainer:
     id_area: IdArea
     fat_area: FatArea
     fat: RolandFileAllocationTable
@@ -173,7 +173,7 @@ class RolandS770ImageContainer:
 
 
 @dataclass
-class RolandS770Image(Image): 
+class RolandS7xxImage(Image): 
 
 
     revision: int
@@ -190,8 +190,8 @@ class RolandS770Image(Image):
     volumes: Dict[int, VolumeEntry]
     fat: RolandFileAllocationTable
 
-    name: ClassVar = "Roland S-770 Image"
-    type_name: ClassVar = "Roland S-770 Image"
+    name: ClassVar = "Roland S-7xx Image"
+    type_name: ClassVar = "Roland S-7xx Image"
     type_id: ClassVar = ElementTypes.DirectoryEntry
 
 
@@ -201,12 +201,12 @@ class RolandS770Image(Image):
         return result
     
 
-class RolandS770ImageAdapter(Adapter):
+class RolandS7xxImageAdapter(Adapter):
     
 
     def _decode(self, obj, context, path):
-        container = cast(RolandS770ImageContainer, obj)
-        result = RolandS770Image(
+        container = cast(RolandS7xxImageContainer, obj)
+        result = RolandS7xxImage(
             container.id_area.revision,
             container.id_area.model_version,
             container.id_area.disk_type,
@@ -228,9 +228,9 @@ class RolandS770ImageAdapter(Adapter):
         raise NotImplementedError
 
 
-def RolandS770ImageParser(file) -> RolandS770Image:
-    adapter = RolandS770ImageAdapter(
-        RolandS770ImageStruct
+def RolandSxxImageParser(file) -> RolandS7xxImage:
+    adapter = RolandS7xxImageAdapter(
+        RolandS7xxImageStruct
     )
     result = adapter.parse_stream(file)
     return result

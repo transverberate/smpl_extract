@@ -20,8 +20,8 @@ from cuesheet import parse_cue_sheet
 from elements import ErrorInvalidPath
 from elements import ExportManager
 from elements import Image
-from roland.s770.image import RolandS770ImageParser
-from roland.s770.image import is_roland_s770_image
+from roland.s7xx.image import RolandSxxImageParser
+from roland.s7xx.image import is_roland_s7xx_image
 
 
 class BadTextFile(Exception): pass
@@ -62,8 +62,8 @@ def determine_image_type(file: Union[str, BufferedReader]):
     elif is_mdx_image(file_stream):
         file_stream = MdxStream(file_stream)
 
-    if is_roland_s770_image(file_stream):
-        result = RolandS770ImageParser(file_stream)
+    if is_roland_s7xx_image(file_stream):
+        result = RolandSxxImageParser(file_stream)
     else:
         result = AkaiImageParser(file_stream)
     return result
