@@ -3,7 +3,7 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from dataclasses import field
 from construct.core import Adapter
 from construct.core import Array
@@ -20,6 +20,7 @@ from construct.core import Struct
 import numpy as np
 from typing import Callable
 from typing import ClassVar
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import cast
@@ -35,6 +36,7 @@ from .data_types import PATCH_PARAMETER_AREA_OFFSET
 from .data_types import PATCH_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
+from .partial_entry import PartialEntry
 from .partial_entry import PartialEntryAdapter
 from .partial_entry import PartialEntryConstruct
 from util.constructs import pass_expression_deeper
@@ -263,7 +265,7 @@ class PatchEntry(PatchParamEntryCommon, Traversable):
     
 
     @property
-    def partial_entries(self):
+    def partial_entries(self) -> Dict[str,PartialEntry]:
         if not self._partial_entries:
             self._partial_entries = self._f_partial_entries()
         return self._partial_entries

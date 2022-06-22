@@ -1,3 +1,4 @@
+from io import SEEK_SET, IOBase
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
@@ -137,6 +138,20 @@ class IdAreaAdapter(Adapter):
 
 
 IdAreaAdapterParser = IdAreaAdapter(IdAreaStruct)
+
+
+def is_roland_s770_image(stream: IOBase)->bool:
+    stream_head = stream.tell()
+    stream.seek(0, SEEK_SET)
+
+    result = True
+    try:
+        IdAreaAdapterParser.parse_stream(stream)  # type: ignore
+    except (ConstructError, UnicodeDecodeError) as e:
+        result = False 
+
+    stream.seek(stream_head, SEEK_SET)
+    return result
 
 
 RolandS770ImageStruct = Struct(

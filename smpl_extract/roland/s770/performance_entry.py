@@ -16,8 +16,10 @@ from construct.core import Int16ul
 from construct.core import Lazy
 from construct.core import PaddedString
 from construct.core import Padding
+from construct.core import Pass
 from construct.core import Pointer
 from construct.core import Struct
+from construct.lib.containers import Container
 import numpy as np
 from typing import Callable
 from typing import ClassVar
@@ -37,6 +39,8 @@ from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
 from .patch_entry import PatchEntryAdapter
 from .patch_entry import PatchEntryConstruct
+from .program_file import ProgramFileAdapter
+from .sample_file import SampleFileListAdapter
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
@@ -160,6 +164,7 @@ class PerformanceEntry(PerformanceParamCommon, Traversable):
 
     def __post_init__(self):
         self._patch_entries = None
+        self._files = None
 
 
     @property
@@ -176,8 +181,41 @@ class PerformanceEntry(PerformanceParamCommon, Traversable):
 
 
     @property
+    def files(self):
+        if self._files is None:
+            sc_program = ProgramFileAdapter(Pass)
+            sc_samples = SampleFileListAdapter(Pass)
+            patches = list(self.patch_entries.values())
+            context = Container(_=Container(parent=self))
+            path = ""
+
+            programs = []
+            samples = []
+            for patch in patches:
+                program = sc_program._decode(
+                    patch,
+                    context,  # type: ignore
+                    path
+                )
+
+                samples_result = sc_samples._decode(
+                    patch,
+                    context,  # type: ignore
+                    path
+                )
+
+                programs.append(program)
+                samples += samples_result
+            
+            files = programs + samples
+            self._files = files
+
+        return self._files
+
+
+    @property
     def children(self):
-        result = list(self.patch_entries.values())
+        result = self.files
         return result
 
 

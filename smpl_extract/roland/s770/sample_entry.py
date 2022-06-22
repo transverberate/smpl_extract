@@ -27,6 +27,7 @@ from typing import cast
 
 from base import Element
 from base import ElementTypes
+from base import Printable
 from .data_types import LoopMode
 from .data_types import MAX_NUM_SAMPLE
 from .data_types import SAMPLE_DIRECTORY_AREA_OFFSET
@@ -37,6 +38,7 @@ from .data_types import SAMPLE_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
 from .fat import RolandFileAllocationTable
+from info import InfoTable
 from midi import MidiNote
 from util.constructs import MappingDefault
 from util.constructs import pass_expression_deeper
@@ -99,8 +101,6 @@ class SampleParamCommon:
     sustain_loop_enable:    int = 0
     sustain_loop_tune:      int = 0
     release_loop_tune:      int = 0
-    seg_top:                int = 0
-    seg_length:             int = 0
     original_key:           MidiNote = MidiNote.from_string("C4")
     loop_mode:              LoopMode = LoopMode.FORWARD_END
 
@@ -140,8 +140,8 @@ SampleParamEntryStruct = Struct(
     "sustain_loop_enable"   / Int8ul,
     "sustain_loop_tune"     / Int8ul,
     "release_loop_tune"     / Int8ul,
-    "seg_top"               / Int16ul,
-    "seg_length"            / Int16ul,
+    "cluster_top"           / Int16ul,
+    "num_clusters"          / Int16ul,
     "sample_options"        / Bitwise(Struct(
         "sample_mode"       /\
             MappingDefault(
@@ -177,6 +177,8 @@ class SampleParamEntryContainer(SampleParamCommon):
     name:                   str = ""
     index:                  int = 0
 
+    cluster_top:            int = 0
+    num_clusters:           int = 0
     sample_options: SampleParamOptionsSection = \
         field(default_factory=SampleParamOptionsSection)
 
@@ -212,7 +214,7 @@ class SampleEntryContainer:
 
 
 @dataclass
-class SampleEntry(SampleParamCommon, SampleParamOptionsSection):
+class SampleEntry(SampleParamCommon, SampleParamOptionsSection, Element):
     directory_name: str                     = ""
     parameter_name: str                     = ""
 
@@ -227,6 +229,11 @@ class SampleEntry(SampleParamCommon, SampleParamOptionsSection):
     @property
     def name(self):
         result = self.directory_name
+        return result
+
+
+    def get_info(self) -> Printable:
+        result = InfoTable(("",), [])
         return result
 
 
@@ -252,7 +259,10 @@ class SampleEntryAdapter(Adapter):
         name = container.directory.name
         sample_path = element_path + [name]
         
-        data_stream = fat.get_file(container.directory.fat_entry)
+        data_stream = fat.get_file(
+            container.directory.fat_entry,
+            cluster_offset=container.parameter.cluster_top
+        )
 
         common_args = get_common_field_args(
             SampleParamCommon,

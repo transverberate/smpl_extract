@@ -84,8 +84,10 @@ class RolandFile(FileStream):
 
 
 class RolandFileAllocationTable(FileAllocationTable):
-    def get_file(self, index: int) -> RolandFile:
+    def get_file(self, index: int, cluster_offset: int = 0) -> RolandFile:
         sector_list = self.get_path(index)
+        if cluster_offset > 0:
+            sector_list = sector_list[cluster_offset:]
         result = RolandFile(
             self.parent_stream,
             sector_list

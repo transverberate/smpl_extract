@@ -30,6 +30,12 @@ class InfoTable(Printable):
 
 
     def print_table(self):
+
+        # if empty
+        if len(self.rows) <= 0:
+            result = "(*empty*)"
+            return result
+
         str_buffer = StringIO(newline="\n")
 
         # calc total number of columns and the widths of each

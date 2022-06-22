@@ -19,6 +19,7 @@ import numpy as np
 from typing import Any
 from typing import Callable
 from typing import ClassVar
+from typing import Dict
 from typing import List
 from typing import cast
 
@@ -114,6 +115,7 @@ class VolumeEntry(Traversable):
     directory_name:         str
     parameter_name:         str
     _f_performance_entries: Callable
+    _context:               Dict
 
     type_id:                ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
     type_name:              ClassVar[str]           = "Roland S-770 Volume"
@@ -132,6 +134,7 @@ class VolumeEntry(Traversable):
     @property
     def performance_entries(self):
         if not self._performance_entries:
+            self._context["parent"] = self
             self._performance_entries = self._f_performance_entries()
         return self._performance_entries
 
@@ -139,6 +142,12 @@ class VolumeEntry(Traversable):
     @property
     def children(self):
         result = list(self.performance_entries.values())
+        return result
+
+
+    @property
+    def path(self):
+        result = [self.name]
         return result
 
 
@@ -151,9 +160,9 @@ class VolumeEntryAdapter(Adapter):
             container.index,
             container.directory.name,
             container.parameter.name,
-            container.performance_entries
+            container.performance_entries,
+            context
         )
-        context["parent"] = volume
         return volume
 
 

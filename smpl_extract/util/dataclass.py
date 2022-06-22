@@ -44,7 +44,10 @@ def process_value(value)->Union[str, ItemT]:
 
 def itemize(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
     if isinstance(self, dict):
-        result = {k: process_value(v) for k, v in self.items()}
+        result = {
+            k: process_value(v) for k, v in self.items()
+            if is_public_field(k)
+        }
     elif is_dataclass(self):
         result = {
             k.name: process_value(getattr(self, k.name)) 

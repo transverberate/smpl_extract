@@ -87,19 +87,26 @@ class ExportManager:
 
 
     _SAFE_ENDING = re.compile(r"(.+?)\s*\.?\s*$")
-    def sanitize_name(self, name: str)->str:
-        result = name.replace(":", "")
+    _INVALID_FILE_NAME = re.compile(r"[^\w\-. ]+")
+    def sanitize_name(self, name: str, is_file=True)->str:
+        result = self._INVALID_FILE_NAME.sub(" ", name).strip()
         match = self._SAFE_ENDING.match(result)
-        if not match:
-            raise ErrorInvalidName(f"Invalid name {name}")
-        result = match.group(1)
+        if match:
+            result = match.group(1)
+        if len(result) <= 0:
+            result = "0"
+        if is_file:
+            match = re.match(r"\w", result)
+            if not match:
+                result = "0" + result
         return result
 
 
     def make_output_path(self, sample_name: str) -> str:
         components = list(self.level) + [sample_name]
-        components = [self.sanitize_name(x) for x in components]
-        result = "/".join(components)
+        components_safe = [self.sanitize_name(x, False) for x in components[:-1]]
+        components_safe += [self.sanitize_name(components[-1], True)]
+        result = "/".join(components_safe)
         return result
 
 
@@ -114,9 +121,8 @@ class ExportManager:
             dir_name = os.path.dirname(total_path)
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
-            export_name = "/".join(sample.path) + ".wav"
             export_wav(sample, total_path)
-            print(f"Exported {export_name}")
+            print(f"Exported {inner_path}.wav")
 
         self.samples.clear()
         return 
@@ -155,7 +161,7 @@ class Traversable(Element):
 
 
     def _sanitize_string(self, input_str: str):
-        result = input_str
+        result = input_str.strip()
         return result
 
 
