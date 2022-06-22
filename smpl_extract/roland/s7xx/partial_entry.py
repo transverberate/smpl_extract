@@ -315,9 +315,16 @@ class PartialEntry(PartialParamCommon, Traversable):
     @property
     def sample_entries(self):
         if not self._sample_entries:
-            self._sample_entries = [
-                x.sample_entry for x in self.sample_entry_references
-            ]
+            sample_entries = []
+            path = self.path
+            for reference in self.sample_entry_references:
+                sample_entry = reference.sample_entry
+                new_path = path + [sample_entry.path[-1]]
+                sample_entry._parent = self
+                sample_entry._path = new_path
+                sample_entries.append(sample_entry)
+            
+            self._sample_entries = sample_entries
         return self._sample_entries
 
 
@@ -379,7 +386,6 @@ class PartialEntryAdapter(Subconstruct):
             _parent=parent,
             _path=partial_path
         )
-        context["parent"] = partial
         try:
             dir_version = context["_"]["_dir_version"]
             context["_dir_version"] = dir_version

@@ -44,6 +44,7 @@ from .sample_file import SampleFileListAdapter
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
+from util.constructs import wrap_context_parent
 from util.dataclass import get_common_field_args
 
 
@@ -246,11 +247,15 @@ class PerformanceEntryAdapter(Adapter):
             **common_args,
             directory_name=container.directory.name,
             parameter_name=container.parameter.name,
-            _f_patch_entries=container.patch_entries,
+            _f_patch_entries=lambda: None,
             _parent=parent,
             _path=performance_path
         )
-        context["parent"] = performance
+        performance._f_patch_entries = wrap_context_parent(
+            container.patch_entries,
+            context,
+            performance
+        )
         try:
             dir_version = context["_"]["_dir_version"]
             context["_dir_version"] = dir_version

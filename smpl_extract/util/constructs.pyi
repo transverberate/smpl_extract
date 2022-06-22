@@ -24,12 +24,23 @@ from typing import Type
 from typing import TypeVar
 from typing import Union
 
+from base import Element
+
 
 def sanitize_container(container: Container)->Dict[str, Any]:
     ...
 
 
 def pass_expression_deeper(expression: Any) -> Callable: 
+    ...
+
+
+S = TypeVar('S')
+def wrap_context_parent(
+    f_realize: Callable[[], S],
+    context: Container,
+    parent: Element
+) -> Callable[[], S]:
     ...
 
 

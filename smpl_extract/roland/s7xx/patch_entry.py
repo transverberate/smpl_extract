@@ -42,6 +42,7 @@ from .partial_entry import PartialEntryConstruct
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
+from util.constructs import wrap_context_parent
 from util.dataclass import get_common_field_args
 
 
@@ -304,11 +305,15 @@ class PatchEntryAdapter(Adapter):
             **common_args,
             directory_name=container.directory.name,
             parameter_name=container.parameter.name,
-            _f_partial_entries=container.partial_entries,
+            _f_partial_entries=lambda: None,
             _parent=parent,
             _path=patch_path
         )
-        context["parent"] = patch
+        patch._f_partial_entries = wrap_context_parent(
+            container.partial_entries,
+            context,
+            patch
+        )
         try:
             dir_version = context["_"]["_dir_version"]
             context["_dir_version"] = dir_version

@@ -30,6 +30,7 @@ from .sat import SegmentAllocationTableAdapter
 from .volume import Volume
 from .volume import VolumeEntryConstruct
 from .volume import VolumesAdapter
+from util.constructs import wrap_context_parent
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
 
@@ -101,13 +102,17 @@ class PartitionAdapter(Subconstruct):
 
         partition = Partition(
             partition_container.sat,
-            partition_container.volumes,
+            lambda: OrderedDict(),
             partition_name,
             parent,
             element_path
         )
 
-        context.parent = partition
+        partition._f_volumes = wrap_context_parent(
+            partition_container.volumes,
+            context,
+            partition
+        )
         
         return partition
 

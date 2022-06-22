@@ -25,6 +25,8 @@ from typing import Tuple
 from typing import TypeVar
 from typing import Type
 
+from base import Element
+
 
 def sanitize_container(container: Container)->Dict[str, Any]:
     result = {
@@ -41,6 +43,23 @@ def pass_expression_deeper(expression: Any) -> Callable:
         new_expression = lambda this: expression
         
     return new_expression
+
+
+def wrap_context_parent(
+    f_realize: Callable,
+    context: Container,
+    parent: Element
+) -> Callable:
+
+
+    def wrap_realize():
+        context.parent = parent  # type: ignore
+        realize_result = f_realize()
+        return realize_result
+    
+
+    result = wrap_realize
+    return result
 
 
 T = TypeVar('T', bound=IntEnum)

@@ -19,7 +19,6 @@ import numpy as np
 from typing import Any
 from typing import Callable
 from typing import ClassVar
-from typing import Dict
 from typing import List
 from typing import cast
 
@@ -37,6 +36,7 @@ from .performance_entry import PerformanceEntryConstruct
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
 from util.constructs import pass_expression_deeper
+from util.constructs import wrap_context_parent
 
 
 VolumeParamEntryStruct = Struct(
@@ -115,7 +115,6 @@ class VolumeEntry(Traversable):
     directory_name:         str
     parameter_name:         str
     _f_performance_entries: Callable
-    _context:               Dict
 
     type_id:                ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
     type_name:              ClassVar[str]           = "Roland S-7xx Volume"
@@ -134,7 +133,6 @@ class VolumeEntry(Traversable):
     @property
     def performance_entries(self):
         if not self._performance_entries:
-            self._context["parent"] = self
             self._performance_entries = self._f_performance_entries()
         return self._performance_entries
 
@@ -160,9 +158,14 @@ class VolumeEntryAdapter(Adapter):
             container.index,
             container.directory.name,
             container.parameter.name,
-            container.performance_entries,
-            context
+            lambda: None,
         )
+        volume._f_performance_entries = wrap_context_parent(
+            container.performance_entries,
+            context,
+            volume
+        )
+
         return volume
 
 
