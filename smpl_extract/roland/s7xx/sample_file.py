@@ -15,12 +15,13 @@ from typing import NamedTuple
 from typing import Optional
 
 from base import Element
-from .data_types import LoopMode
+from .data_types import RolandLoopMode
 from .data_types import ROLAND_SAMPLE_WIDTH
 from elements import SampleElement
 from generalized.sample import ChannelConfig
 from generalized.sample import Endianness
 from generalized.sample import LoopRegion
+from generalized.sample import LoopType
 from generalized.sample import Sample
 from .patch_entry import PatchEntry
 from .sample_entry import SampleEntry
@@ -63,7 +64,6 @@ def _get_forward_end_params(
         start_sample=sustain_start,
         end_sample=sustain_end,
         repeat_forever=True
-
     )
     result = SampleParams(
         stream_result,
@@ -91,7 +91,8 @@ def _get_forward_release_params(
 
     sustain_loop = LoopRegion(
         start_sample=sustain_start,
-        end_sample=sustain_end
+        end_sample=sustain_end,
+        repeat_forever=False
     )
     release_loop = LoopRegion(
         start_sample=release_start,
@@ -160,7 +161,29 @@ def _get_alternate_params(
         stream: IOBase, 
         points: RolandLoopPoints
 ) -> SampleParams:
-    raise NotImplementedError
+    offset_sample = points.start
+    num_samples = points.sustain_end - offset_sample + 1
+    stream_result = StreamOffset(
+        stream,
+        ROLAND_SAMPLE_WIDTH * num_samples,
+        ROLAND_SAMPLE_WIDTH * offset_sample
+    )
+
+    sustain_start   = max(0, points.sustain_start - offset_sample)
+    sustain_end     = max(0, points.sustain_end - offset_sample)
+
+    sustain_loop = LoopRegion(
+        start_sample=sustain_start,
+        end_sample=sustain_end,
+        repeat_forever=False,
+        loop_type=LoopType.ALTERNATING
+    )
+
+    result = SampleParams(
+        stream_result,
+        loops=[sustain_loop]
+    )
+    return result
 
 
 def _get_reverse_oneshot_params(
@@ -211,13 +234,13 @@ class SampleFile(
         )
 
         get_params_map = {
-            LoopMode.FORWARD_END:       _get_forward_end_params,
-            LoopMode.FORWARD_RELEASE:   _get_forward_release_params,
-            LoopMode.ONESHOT:           _get_oneshot_params,
-            LoopMode.FORWARD_ONESHOT:   _get_forward_oneshot_params,
-            LoopMode.ALTERNATE:         _get_alternate_params,
-            LoopMode.REVERSE_ONESHOT:   _get_reverse_oneshot_params,
-            LoopMode.REVERSE_LOOP:      _get_reverse_loop_params,
+            RolandLoopMode.FORWARD_END:       _get_forward_end_params,
+            RolandLoopMode.FORWARD_RELEASE:   _get_forward_release_params,
+            RolandLoopMode.ONESHOT:           _get_oneshot_params,
+            RolandLoopMode.FORWARD_ONESHOT:   _get_forward_oneshot_params,
+            RolandLoopMode.ALTERNATE:         _get_alternate_params,
+            RolandLoopMode.REVERSE_ONESHOT:   _get_reverse_oneshot_params,
+            RolandLoopMode.REVERSE_LOOP:      _get_reverse_loop_params,
         }
         
         f_get_params = get_params_map.get(

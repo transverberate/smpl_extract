@@ -99,7 +99,7 @@ DATA_FAT_OFFSET     = 0x2b1000
 
 
 # --- ENUMS ---
-class FileType(enum.IntEnum):
+class RolandFileType(enum.IntEnum):
     NONE        = 0x00
     VOLUME      = 0x40
     PERFORMANCE = 0x41 
@@ -112,7 +112,7 @@ class FileType(enum.IntEnum):
         return result
 
 
-class SampleMode(enum.IntEnum):
+class RolandSampleMode(enum.IntEnum):
     MONO    = 0
     STEREO  = 1
 
@@ -121,7 +121,7 @@ class SampleMode(enum.IntEnum):
         return result
 
 
-class LoopMode(enum.IntEnum):
+class RolandLoopMode(enum.IntEnum):
     FORWARD_END     = 0
     FORWARD_RELEASE = 1
     ONESHOT         = 2

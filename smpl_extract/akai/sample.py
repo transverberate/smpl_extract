@@ -47,10 +47,10 @@ from util.dataclass import make_itemizable
 @make_itemizable
 @dataclass
 class LoopEntry:
-    loop_start: int
-    loop_end: float
-    loop_duration: float
-    repeat_forever: bool
+    loop_start:         int
+    loop_end:           float
+    loop_duration:      float
+    repeat_forever:     bool
 
 
 @dataclass

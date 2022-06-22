@@ -4,7 +4,8 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
 
 from dataclasses import dataclass
-from typing import Dict, cast
+from typing import cast
+from typing import Dict
 from construct.core import Adapter
 from construct.core import Computed
 from construct.core import Construct
@@ -15,7 +16,6 @@ from construct.core import Int32ul
 from construct.core import Int8ul
 from construct.core import Struct
 
-from .data_types import FileType
 from .data_types import MAX_NUM_PARTIAL
 from .data_types import PARTIAL_DIRECTORY_AREA_SIZE
 from .data_types import MAX_NUM_PATCH
@@ -26,6 +26,7 @@ from .data_types import MAX_NUM_SAMPLE
 from .data_types import SAMPLE_DIRECTORY_AREA_SIZE
 from .data_types import MAX_NUM_VOLUME
 from .data_types import VOLUME_DIRECTORY_AREA_SIZE
+from .data_types import RolandFileType
 from util.constructs import MappingDefault
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
@@ -37,13 +38,13 @@ DirectoryEntryStruct = Struct(
     "file_type"         / MappingDefault(
         Int8ul, 
         {
-            FileType.VOLUME:        0x40,
-            FileType.PERFORMANCE:   0x41,
-            FileType.PATCH:         0x42,
-            FileType.PARTIAL:       0x43,
-            FileType.SAMPLE:        0x44
+            RolandFileType.VOLUME:        0x40,
+            RolandFileType.PERFORMANCE:   0x41,
+            RolandFileType.PATCH:         0x42,
+            RolandFileType.PARTIAL:       0x43,
+            RolandFileType.SAMPLE:        0x44
         },
-        (FileType.NONE, 0x00)
+        (RolandFileType.NONE, 0x00)
     ),
     "file_attributes"   / Int8ul,
     "forward_link_ptr"  / Int16ul,
@@ -57,7 +58,7 @@ DirectoryEntryStruct = Struct(
 class DirectoryEntryContainer:
     name:               str
     index:              int
-    file_type:          FileType
+    file_type:          RolandFileType
     file_attributes:    int
     forward_link_ptr:   int
     backward_link_ptr:  int

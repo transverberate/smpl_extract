@@ -18,6 +18,7 @@ from formats.wav import WavLoopType
 from formats.wav import WavRiffChunkType
 from formats.wav import WavSampleChunkContainer
 from generalized.sample import ChannelConfig
+from generalized.sample import LoopType
 from generalized.sample import Sample
 from midi import MidiNote
 from util.stream import SectorReadError
@@ -56,6 +57,12 @@ def get_smpl_chunk_data(sample: Sample) -> WavSampleChunkContainer:
     if sample_rate == 0:
         sample_rate = _DEFAULT_SAMPLE_RATE
 
+    loop_type_mapping = {
+        LoopType.FORWARD:       WavLoopType.FORWARD,
+        LoopType.ALTERNATING:   WavLoopType.ALTERNATING,
+        LoopType.REVERSE:       WavLoopType.REVERSE
+    }
+
     loop_headers = []
     if len(sample.loop_regions):
         for i, loop in enumerate(sample.loop_regions):
@@ -68,10 +75,15 @@ def get_smpl_chunk_data(sample: Sample) -> WavSampleChunkContainer:
                 if loop_total_duration == 0: 
                     continue
                 play_cnt = round(loop_duration/loop_total_duration)
+
+            loop_type = loop_type_mapping.get(
+                loop.loop_type,
+                WavLoopType.FORWARD
+            )
             
             loop_headers.append(WavLoopContainer(
                 cue_id=i,
-                loop_type=WavLoopType.FORWARD,
+                loop_type=loop_type,
                 start_byte=loop.start_sample,
                 end_byte=loop.end_sample,
                 fraction=0,

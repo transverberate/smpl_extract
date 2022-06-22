@@ -28,11 +28,11 @@ from typing import cast
 from base import Element
 from base import ElementTypes
 from base import Printable
-from .data_types import LoopMode
 from .data_types import MAX_NUM_SAMPLE
+from .data_types import RolandLoopMode
+from .data_types import RolandSampleMode
 from .data_types import SAMPLE_DIRECTORY_AREA_OFFSET
 from .data_types import SAMPLE_DIRECTORY_ENTRY_SIZE
-from .data_types import SampleMode
 from .data_types import SAMPLE_PARAMETER_AREA_OFFSET
 from .data_types import SAMPLE_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
@@ -102,7 +102,7 @@ class SampleParamCommon:
     sustain_loop_tune:      int = 0
     release_loop_tune:      int = 0
     original_key:           MidiNote = MidiNote.from_string("C4")
-    loop_mode:              LoopMode = LoopMode.FORWARD_END
+    loop_mode:              RolandLoopMode = RolandLoopMode.FORWARD_END
 
     start_sample: SampleParamLoopPoint = \
         field(default_factory=SampleParamLoopPoint)
@@ -127,15 +127,15 @@ SampleParamEntryStruct = Struct(
     "loop_mode"             / MappingDefault(
         Int8ul,
         {
-            LoopMode.FORWARD_END:       0,
-            LoopMode.FORWARD_RELEASE:   1,
-            LoopMode.ONESHOT:           2,
-            LoopMode.FORWARD_ONESHOT:   3,
-            LoopMode.ALTERNATE:         4,
-            LoopMode.REVERSE_ONESHOT:   5,
-            LoopMode.REVERSE_LOOP:      6
+            RolandLoopMode.FORWARD_END:         0,
+            RolandLoopMode.FORWARD_RELEASE:     1,
+            RolandLoopMode.ONESHOT:             2,
+            RolandLoopMode.FORWARD_ONESHOT:     3,
+            RolandLoopMode.ALTERNATE:           4,
+            RolandLoopMode.REVERSE_ONESHOT:     5,
+            RolandLoopMode.REVERSE_LOOP:        6
         }, 
-        (LoopMode.FORWARD_END, 0)
+        (RolandLoopMode.FORWARD_END, 0)
     ),
     "sustain_loop_enable"   / Int8ul,
     "sustain_loop_tune"     / Int8ul,
@@ -147,10 +147,10 @@ SampleParamEntryStruct = Struct(
             MappingDefault(
                 Nibble,
                 {
-                    SampleMode.MONO:    0,
-                    SampleMode.STEREO:  1
+                    RolandSampleMode.MONO:      0,
+                    RolandSampleMode.STEREO:    1
                 },
-                (SampleMode.MONO, 0)
+                (RolandSampleMode.MONO, 0)
             ),
         "sampling_frequency" /\
             MappingDefault(
@@ -170,8 +170,8 @@ SampleParamEntryStruct = Struct(
 )
 @dataclass
 class SampleParamOptionsSection:
-    sample_mode:        SampleMode  = SampleMode.MONO
-    sampling_frequency: int         = 48000
+    sample_mode:        RolandSampleMode    = RolandSampleMode.MONO
+    sampling_frequency: int                 = 48000
 @dataclass
 class SampleParamEntryContainer(SampleParamCommon):
     name:                   str = ""

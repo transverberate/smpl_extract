@@ -24,19 +24,26 @@ class ChannelConfig(enum.IntEnum):
 
 
 class Endianness(enum.IntEnum):
-    LITTLE = enum.auto()
-    BIG = enum.auto()
+    LITTLE  = enum.auto()
+    BIG     = enum.auto()
 
 
 class Inclusivity(enum.IntEnum):
-    INCLUSIVE = enum.auto()
-    EXCLUSIVE = enum.auto()
+    INCLUSIVE   = enum.auto()
+    EXCLUSIVE   = enum.auto()
+
+
+class LoopType(enum.IntEnum):
+    FORWARD     = enum.auto()
+    ALTERNATING = enum.auto()
+    REVERSE     = enum.auto()
 
 
 @dataclass
 class LoopRegion:
     start_sample:   int = 0
     end_sample:     int = 0
+    loop_type:      LoopType = LoopType.FORWARD
     start_include:  Inclusivity = Inclusivity.INCLUSIVE
     end_include:    Inclusivity = Inclusivity.INCLUSIVE
     repeat_forever: bool = True
