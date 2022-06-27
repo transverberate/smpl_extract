@@ -19,7 +19,6 @@ from construct.expr import this
 from construct.lib.containers import Container
 from dataclasses import dataclass
 from dataclasses import field
-from dataclasses import fields
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -41,7 +40,6 @@ from util.constructs import BoolConstruct
 from util.constructs import EnumWrapper
 from util.constructs import MappingDefault
 from util.dataclass import get_common_field_args
-from util.dataclass import make_itemizable
 
 
 @dataclass
@@ -262,7 +260,6 @@ class ProgramContainer:
     keygroups:  Sequence[Keygroup]      = field(default_factory=Sequence[Keygroup])
 
 
-@make_itemizable
 @dataclass
 class Program(ProgramHeaderCommon, ProgramElement):
     keygroups:  Sequence[Keygroup]      = field(default_factory=Sequence[Keygroup])
@@ -275,11 +272,6 @@ class Program(ProgramHeaderCommon, ProgramElement):
     def name(self) -> str:
         result = self.file_name
         return result
-
-    # needed to stop unimplemented abstract method exception
-    # will be added by @make_itemizable
-    def itemize(self):
-        return None
 
 
 class ProgramAdapter(Adapter):

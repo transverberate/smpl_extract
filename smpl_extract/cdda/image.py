@@ -4,7 +4,6 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from dataclasses import dataclass
 from dataclasses import field
-from dataclasses import fields
 from io import IOBase
 from io import SEEK_END
 from io import SEEK_SET
@@ -19,8 +18,6 @@ from elements import Image
 from generalized.sample import ChannelConfig
 from generalized.sample import Endianness
 from generalized.sample import Sample
-import util.dataclass
-from util.dataclass import is_public_field
 from util.stream import StreamOffset
 
 
@@ -34,31 +31,24 @@ BYTES_PER_FRAME = SAMPLE_WIDTH * N_CHANNELS * SAMPLES_PER_FRAME
 @dataclass
 class AudioTrack(SampleElement):
     title: str = ""
-    data_stream: IOBase = field(default_factory=IOBase)
     num_channels:       int = 2
     sample_rate:        int = 44100
     bytes_per_sample:   int = 2
     num_audio_samples:  int = 0
+    _data_stream:       IOBase = field(default_factory=IOBase)
     _parent:            Optional[Element] = None
     _path:              List[str] = field(default_factory=list)
 
     type_name: ClassVar[str] = "CDDA Track"
 
+
     @property
     def name(self):
         return self.title
 
-    def itemize(self):
-        items = {
-            k.name: getattr(self, k.name) 
-            for k in fields(self) if k.name != "data_stream"
-                and is_public_field(k.name)
-        }
-        result = util.dataclass.itemize(items)
-        return result
 
     def to_generalized(self) -> Sample:
-        data_streams = [self.data_stream]
+        data_streams = [self._data_stream]
         result = Sample(
             name=self.name,
             path=self.path,
@@ -138,9 +128,9 @@ class CompactDiskAudioImageAdapter:
                     track_path = element_path + [title]
 
                     audio_track = AudioTrack(
-                        title,
-                        data_stream,
+                        title=title,
                         num_audio_samples=total_num_samples,
+                        _data_stream=data_stream,
                         _parent=image,
                         _path=track_path
                     )
@@ -169,9 +159,9 @@ class CompactDiskAudioImageAdapter:
                 track_path = element_path + [title]
 
                 audio_track = AudioTrack(
-                    title,
-                    data_stream,
+                    title=title,
                     num_audio_samples=total_num_samples,
+                    _data_stream=data_stream,
                     _parent=image,
                     _path=track_path
                 )

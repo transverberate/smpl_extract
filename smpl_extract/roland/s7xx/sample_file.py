@@ -28,7 +28,6 @@ from .sample_entry import SampleEntry
 from .sample_entry import SampleParamCommon
 from .sample_entry import SampleParamOptionsSection
 from util.dataclass import get_common_field_args
-from util.dataclass import make_itemizable
 from util.stream import StreamOffset
 
 
@@ -200,7 +199,6 @@ def _get_reverse_loop_params(
     raise NotImplementedError
 
 
-@make_itemizable
 @dataclass
 class SampleFile(
         SampleParamCommon, 
@@ -215,12 +213,6 @@ class SampleFile(
 
     type_name:          ClassVar[str]           = "Roland S-7xx Sample"
     bytes_per_sample:   ClassVar[int]           = ROLAND_SAMPLE_WIDTH
-
-    
-    # needed to stop unimplemented abstract method exception
-    # will be added by @make_itemizable
-    def itemize(self):
-        return None
 
 
     def to_generalized(self) -> Sample:

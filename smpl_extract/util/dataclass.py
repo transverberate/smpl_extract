@@ -3,17 +3,19 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from collections.abc import Iterable
+from construct.lib.containers import Container
 from dataclasses import fields
 from dataclasses import is_dataclass
-import functools
+from io import IOBase
 from typing import Any 
 from typing import Protocol
-from typing import cast
 from typing import Dict
 from typing import Mapping
 from typing import Sequence
 from typing import Tuple
 from typing import Union
+
+from .constructs import sanitize_container
 
 
 ItemT = Union[Mapping[str, 'ItemT'], Tuple['ItemT', ...], str]
@@ -23,18 +25,16 @@ class Itemizable(Protocol):
     def itemize(self) -> ItemT: ...
 
 
-def is_public_field(item: str) -> bool:
-    if len(item) > 0 and item[0] == "_":
-        return False
-    return True
-
-
 def process_value(value)->Union[str, ItemT]:
     result: Union[str, ItemT]
     if hasattr(value, "itemize"):
-        result = cast(ItemT, value.itemize())
-    elif not isinstance(value, str) and isinstance(value, Iterable):
-        result = itemize(value)  # type: ignore
+        result = value.itemize()
+    elif is_dataclass(value):
+        result = itemize_general(value)
+    elif not isinstance(value, str) and not isinstance(value, IOBase) \
+            and isinstance(value, Iterable):
+
+        result = itemize_general(value)  # type: ignore
     else:
         result = str(value)
         return result
@@ -42,38 +42,24 @@ def process_value(value)->Union[str, ItemT]:
     return result
 
 
-def itemize(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
-    if isinstance(self, dict):
+def itemize_general(self: Union[Sequence[Any], Dict[str, Any]])->ItemT:
+    if isinstance(self, Container):
+        sanitized = sanitize_container(self)
+        result = {
+            k: process_value(v) for k, v in sanitized.items()
+        }
+    elif isinstance(self, dict):
         result = {
             k: process_value(v) for k, v in self.items()
-            if is_public_field(k)
         }
     elif is_dataclass(self):
         result = {
-            k.name: process_value(getattr(self, k.name)) 
-            for k in fields(self) if is_public_field(k.name)
+            k.name: process_value(getattr(self, k.name))
+            for k in fields(self)
         }
     else:
         result = tuple(process_value(v) for v in self)
-
     return result
-
-
-def make_itemizable(cls):  # decorator 
-    
-    func = itemize
-
-    if is_dataclass(cls):
-
-        @functools.wraps(itemize)
-        def itemize_dataclass(self):
-            result = itemize(self)
-            return result
-
-        func = itemize_dataclass
-
-    setattr(cls, "itemize", func)
-    return cls
 
 
 def get_common_field_args(common_dataclass: Any, source_instance):

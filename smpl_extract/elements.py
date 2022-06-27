@@ -4,6 +4,8 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from abc import ABCMeta
 from abc import abstractmethod
+from dataclasses import dataclass
+from dataclasses import fields
 import re
 from typing import Callable
 from typing import ClassVar
@@ -20,6 +22,7 @@ from generalized.wav import export_wav
 from generalized.sample import Sample
 from info import InfoTable
 from info import InfoTree
+from util.dataclass import itemize_general
 from util.dataclass import ItemT
 
 
@@ -29,10 +32,41 @@ class ErrorInvalidPath(Exception): ...
 class ErrorInvalidName(Exception): ...
 
 
-class LeafElement(Element, metaclass=ABCMeta):
+@dataclass
+class LeafElement(Element):
+    _is_leaf: ClassVar[bool] = True
 
-    @abstractmethod
-    def itemize(self) -> ItemT: ...
+
+    def is_public_field(
+            self, 
+            item_name: str, 
+            excluded_keys: Optional[List[str]] = None
+    ) -> bool:
+        if len(item_name) <= 0:
+            return False
+        if item_name[0] == "_":
+            return False
+        if excluded_keys is not None:
+            if item_name in excluded_keys:
+                return False
+        return True
+
+
+    def itemize(self) -> ItemT:
+        DEFAULT_EXCLUDE = [
+            "name",
+            "path",
+            "type_id",
+            "type_name"
+        ]
+        items_dict = {
+            k.name: getattr(self, k.name) 
+            for k in fields(self) 
+            if self.is_public_field(k.name, DEFAULT_EXCLUDE)
+        }
+        result = itemize_general(items_dict)
+        return result
+
 
     def get_info(self) -> Printable:
         header = (self.name, " "*2, self.type_name)

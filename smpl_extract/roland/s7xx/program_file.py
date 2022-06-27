@@ -18,22 +18,18 @@ from .partial_entry import PartialParamSampleSectionCommon
 from .patch_entry import PatchEntry
 from .patch_entry import PatchParamEntryCommon
 from util.dataclass import get_common_field_args
-from util.dataclass import make_itemizable
 
 
-@make_itemizable
 @dataclass
 class SampleReferenceItem(PartialParamSampleSectionCommon):
     sample: str = ""
 
 
-@make_itemizable
 @dataclass
 class PartialItem(PartialParamCommon):
     samples: List = field(default_factory=list)
 
 
-@make_itemizable
 @dataclass
 class ProgramFile(PatchParamEntryCommon,  ProgramElement):
     name:               str                     = ""
@@ -42,12 +38,6 @@ class ProgramFile(PatchParamEntryCommon,  ProgramElement):
     _path:              List[str]               = field(default_factory=list)
 
     type_name:          ClassVar[str]           = "Roland S-7xx Program"
-
-
-    # needed to stop unimplemented abstract method exception
-    # will be added by @make_itemizable
-    def itemize(self):
-        return None
 
 
 class ProgramFileAdapter(Adapter):

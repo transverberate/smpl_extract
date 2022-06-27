@@ -14,7 +14,6 @@ from construct.core import Tell
 from construct.expr import this
 from dataclasses import dataclass
 from dataclasses import field
-from dataclasses import fields
 from io import  IOBase
 import math
 from typing import ClassVar, Container, List, Optional
@@ -39,12 +38,8 @@ from midi import MidiNote
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
 from util.constructs import EnumWrapper
-import util.dataclass
-from util.dataclass import is_public_field
-from util.dataclass import make_itemizable
 
 
-@make_itemizable
 @dataclass
 class LoopEntry:
     loop_start:         int
@@ -68,7 +63,7 @@ class AkaiSample(SampleElement):
     pitch_semi:         int = 0
     loop_type:          AkaiLoopType = AkaiLoopType.LOOP_INACTIVE
     loop_entries:       Sequence[LoopEntry] = tuple()
-    data_stream:        IOBase = field(default_factory=IOBase)
+    _data_stream:       IOBase = field(default_factory=IOBase)
     _parent:            Optional[Element] = None
     _path:              List[str] = field(default_factory=list)
 
@@ -82,16 +77,6 @@ class AkaiSample(SampleElement):
     @property
     def name(self) -> str:
         result = self.file_name
-        return result
-
-
-    def itemize(self):
-        items = {
-            k.name: getattr(self, k.name) 
-            for k in fields(self) if k.name != "data_stream" 
-                and is_public_field(k.name) 
-        }
-        result = util.dataclass.itemize(items)
         return result
 
 
@@ -116,7 +101,7 @@ class AkaiSample(SampleElement):
                     duration=loop.loop_duration
                 ))
 
-        data_streams = [self.data_stream]
+        data_streams = [self._data_stream]
         result = Sample(
             name=self.name,
             path=self.path,
@@ -266,7 +251,7 @@ class SampleAdapter(Adapter):
             sample_header.pitch_offset_semi,
             sample_header.loop_type,
             loop_entries,
-            sample_header.data_stream,
+            _data_stream=sample_header.data_stream,
             _parent=parent,
             _path=sample_path
         )

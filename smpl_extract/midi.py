@@ -47,6 +47,11 @@ class MidiNote:
         ])
 
 
+    def itemize(self):
+        result = self.to_string()
+        return result
+
+
     def __str__(self)->str:
         return self.to_string()
 

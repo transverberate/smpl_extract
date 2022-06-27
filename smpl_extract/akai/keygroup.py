@@ -5,11 +5,9 @@ sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 from dataclasses import dataclass
 from dataclasses import field
-from dataclasses import fields
 from typing import List
 from typing import Sequence
 from construct.core import Adapter
-from construct.core import Check
 from construct.core import Computed
 from construct.core import ConstructError
 from construct.core import Default
@@ -20,7 +18,6 @@ from construct.core import Int8ul
 from construct.core import Padding
 from construct.core import Struct
 from construct.expr import len_
-from construct.expr import this
 from construct.lib.containers import Container
 
 from .akai_string import AkaiPaddedString
@@ -34,7 +31,6 @@ from util.constructs import PaddedGeneral
 from util.constructs import sanitize_container
 from util.constructs import SlicingGeneral
 from util.dataclass import get_common_field_args
-from util.dataclass import make_itemizable
 
 
 # Has a *different* mapping than the loop_mode_stored in samples
@@ -181,7 +177,6 @@ KeygroupConstruct = Struct(
     "env2_to_pitch"                     / Int8sl,
     "velocity_zone_crossfade"           / BoolConstruct(Int8ul),
     "num_velocity_zones"                / Default(Int8ul, 4),
-    #Check(this.num_velocity_zones <= 4),
     Padding(2, pattern=b"\xFF"),
     "velocity_zones"                    / PaddedGeneral(
                                             lambda this:
@@ -219,7 +214,6 @@ KeygroupConstruct = Struct(
 )
 
 
-@make_itemizable
 @dataclass
 class VelocityZone(VelocityZoneCommon):
     enable_key_tracking:        bool    = True
@@ -227,7 +221,6 @@ class VelocityZone(VelocityZoneCommon):
     velocity_to_sample_start:   int     = 0
 
 
-@make_itemizable
 @dataclass
 class Keygroup(KeygroupCommon):
     velocity_zones: Sequence[VelocityZone] = field(default=(VelocityZone(), ))
