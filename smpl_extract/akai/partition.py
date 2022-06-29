@@ -24,15 +24,15 @@ from .data_types import  AKAI_SAT_ENTRY_CNT
 from .data_types import AKAI_SECTOR_SIZE
 from .data_types import AKAI_VOLUME_ENTRY_CNT
 from .data_types import InvalidCharacter
-from elements import Traversable
 from .sat import SegmentAllocationTable
 from .sat import SegmentAllocationTableAdapter
-from .volume import Volume
-from .volume import VolumeEntryConstruct
-from .volume import VolumesAdapter
+from structural import Traversable
 from util.constructs import wrap_context_parent
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
+from .volume import Volume
+from .volume import VolumeEntryConstruct
+from .volume import VolumesAdapter
 
 
 class InvalidPartition(Exception):

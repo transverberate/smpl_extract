@@ -12,11 +12,11 @@ from typing import List
 from typing import Optional
 
 from base import Element
-from elements import ProgramElement
 from .partial_entry import PartialParamCommon
 from .partial_entry import PartialParamSampleSectionCommon
 from .patch_entry import PatchEntry
 from .patch_entry import PatchParamEntryCommon
+from structural import ProgramElement
 from util.dataclass import get_common_field_args
 
 

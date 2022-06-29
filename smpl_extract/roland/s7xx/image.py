@@ -23,10 +23,10 @@ from typing import cast
 from base import ElementTypes
 from .data_types import FAT_AREA_OFFSET
 from .data_types import ID_AREA_SIZE
-from elements import Image
 from .fat import FatArea
 from .fat import FatAreaParser
 from .fat import RolandFileAllocationTable
+from structural import Image
 from .volume_entry import VolumeEntry
 from .volume_entry import VolumeEntriesList
 

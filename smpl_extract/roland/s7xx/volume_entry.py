@@ -23,7 +23,6 @@ from typing import List
 from typing import cast
 
 from base import ElementTypes
-from elements import Traversable
 from .data_types import MAX_NUM_VOLUME
 from .data_types import VOLUME_DIRECTORY_AREA_OFFSET
 from .data_types import VOLUME_DIRECTORY_ENTRY_SIZE
@@ -33,6 +32,7 @@ from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
 from .performance_entry import PerformanceEntryAdapter
 from .performance_entry import PerformanceEntryConstruct
+from structural import Traversable
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
 from util.constructs import pass_expression_deeper

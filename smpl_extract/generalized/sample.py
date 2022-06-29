@@ -9,11 +9,15 @@ from dataclasses import field
 from dataclasses import fields
 import enum
 from io import IOBase
+from typing import ClassVar
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
 
+from base import Element
+from base import ElementTypes
+from elements import LeafElement
 from midi import MidiNote
 
 
@@ -52,9 +56,8 @@ class LoopRegion:
 
 
 @dataclass
-class Sample:
+class Sample(LeafElement):
     name:               str = ""
-    path:               List[str] = field(default_factory=list)
     channel_config:     ChannelConfig = ChannelConfig.MONO
     endianness:         Endianness = Endianness.LITTLE
     sample_rate:        int = 44100
@@ -67,8 +70,11 @@ class Sample:
     pitch_offset_semi:  Optional[int] = None
     pitch_offset_cents: Optional[int] = None
 
-    def __post_init__(self):
-        self.original_path = self.path.copy()
+    _path:               List[str] = field(default_factory=list)
+
+    type_id:            ClassVar[ElementTypes] = ElementTypes.SampleGeneralized
+    type_name:          ClassVar[str] = "Sample (Generalized)"
+    parent:             ClassVar[Optional[Element]] = None
 
 
 def combine_stereo(left: Sample, right: Sample, new_name: Optional[str] = None) -> Sample:

@@ -27,7 +27,6 @@ from typing import Optional
 
 from base import Element
 from base import ElementTypes
-from elements import Traversable
 from .data_types import MAX_NUM_PARTIAL
 from .data_types import PARTIAL_DIRECTORY_AREA_OFFSET
 from .data_types import PARTIAL_DIRECTORY_ENTRY_SIZE
@@ -38,6 +37,7 @@ from .directory_area import DirectoryEntryParser
 from .sample_entry import SampleEntry
 from .sample_entry import SampleEntryAdapter
 from .sample_entry import SampleEntryConstruct
+from structural import Traversable
 from util.constructs import pass_expression_deeper
 from util.constructs import UnsizedConstruct
 from util.dataclass import get_common_field_args

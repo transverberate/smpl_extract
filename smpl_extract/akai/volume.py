@@ -17,12 +17,12 @@ from construct.expr import this
 
 from .akai_string import AkaiPaddedString
 from base import Element
-from elements import Traversable
 from .data_types import VolumeType
 from .file_entry import FileEntriesAdapter
 from .file_entry import FileEntryConstruct
 from .file_entry import InvalidFileEntry
 from .file_entry import FileEntry
+from structural import Traversable
 from util.constructs import EnumWrapper
 
 

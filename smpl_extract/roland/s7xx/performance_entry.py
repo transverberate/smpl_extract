@@ -29,7 +29,6 @@ from typing import Optional
 
 from base import Element
 from base import ElementTypes
-from elements import Traversable
 from .data_types import MAX_NUM_PERFORMANCE
 from .data_types import PERFORMANCE_DIRECTORY_AREA_OFFSET
 from .data_types import PERFORMANCE_DIRECTORY_ENTRY_SIZE
@@ -41,6 +40,7 @@ from .patch_entry import PatchEntryAdapter
 from .patch_entry import PatchEntryConstruct
 from .program_file import ProgramFileAdapter
 from .sample_file import SampleFileListAdapter
+from structural import Traversable
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct

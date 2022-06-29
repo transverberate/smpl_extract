@@ -9,13 +9,13 @@ from io import SEEK_SET
 import re
 from typing import List, cast
 
-from elements import ElementTypes
-from elements import Image
+from base import ElementTypes
 from generalized.sample import combine_stereo
 from generalized.sample import Sample
 from .partition import InvalidPartition
 from .partition import Partition
 from .partition import PartitionParser
+from structural import Image
 
 
 class AkaiImageParser(Image):

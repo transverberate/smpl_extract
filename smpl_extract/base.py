@@ -26,8 +26,8 @@ class ElementTypes(enum.IntEnum):
     DirectoryEntry = enum.auto()
     SampleEntry = enum.auto()
     ProgramEntry = enum.auto()
-    Sample = enum.auto()
-    Program = enum.auto()
+    SampleGeneralized = enum.auto()
+    ProgramGeneralized = enum.auto()
 
 
 class Element(metaclass=ABCMeta):
@@ -43,6 +43,8 @@ class Element(metaclass=ABCMeta):
     ) -> None:
         self._path = path or []
         self._parent = parent
+        self._safe_name = None
+        self._export_name = None
 
     @property
     def path(self) -> List[str]:
@@ -59,8 +61,23 @@ class Element(metaclass=ABCMeta):
         else:
             result = None
         return result
+
+    @property
+    def safe_name(self) -> str:
+        result = self.name
+        if hasattr(self, "_safe_name"):
+            if self._safe_name is not None:
+                result = self._safe_name
+        return result
+
+    @property
+    def export_name(self) -> str:
+        result = self.name
+        if hasattr(self, "_export_name"):
+            if self._export_name is not None:
+                result = self._export_name
+        return result
     
     @abstractmethod
     def get_info(self) -> Printable: ...  
 
-        

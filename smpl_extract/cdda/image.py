@@ -13,11 +13,11 @@ from typing import Optional
 
 from smpl_extract.base import Element
 from cuesheet import CueSheetFile
-from elements import SampleElement
-from elements import Image
 from generalized.sample import ChannelConfig
 from generalized.sample import Endianness
 from generalized.sample import Sample
+from structural import Image
+from structural import SampleElement
 from util.stream import StreamOffset
 
 
@@ -51,14 +51,14 @@ class AudioTrack(SampleElement):
         data_streams = [self._data_stream]
         result = Sample(
             name=self.name,
-            path=self.path,
             channel_config=ChannelConfig.STEREO_SINGLE_STREAM,
             endianness=Endianness.LITTLE,
             sample_rate=self.sample_rate,
             bytes_per_sample=self.bytes_per_sample,
             num_channels=2,
             num_audio_samples=self.num_audio_samples,
-            data_streams=data_streams
+            data_streams=data_streams,
+            _path=self.path
         )
         return result
 

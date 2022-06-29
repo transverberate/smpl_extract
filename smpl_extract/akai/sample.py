@@ -29,12 +29,12 @@ from .data_types import AkaiLoopType
 from .data_types import AkaiMidiNote
 from .data_types import AkaiTuneCents
 from .data_types import SampleType
-from elements import SampleElement
 from generalized.sample import ChannelConfig
 from generalized.sample import Endianness
 from generalized.sample import LoopRegion
 from generalized.sample import Sample
 from midi import MidiNote
+from structural import SampleElement
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
 from util.constructs import EnumWrapper
@@ -104,7 +104,6 @@ class AkaiSample(SampleElement):
         data_streams = [self._data_stream]
         result = Sample(
             name=self.name,
-            path=self.path,
             channel_config=ChannelConfig.MONO,
             endianness=Endianness.LITTLE,
             sample_rate=self.sample_rate,
@@ -114,7 +113,8 @@ class AkaiSample(SampleElement):
             pitch_offset_semi=self.pitch_semi,
             pitch_offset_cents=self.pitch_cents,
             loop_regions=loop_regions,
-            data_streams=data_streams
+            data_streams=data_streams,
+            _path=self.path
         )
         return result
       

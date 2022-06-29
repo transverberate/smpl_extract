@@ -5,7 +5,8 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from functools import wraps
 from io import BufferedReader
-from typing import Callable 
+from typing import Callable
+from typing import Dict 
 from typing import List
 from typing import Union
 
@@ -14,12 +15,14 @@ from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
 from alcohol.mdx import is_mdx_image
 from alcohol.mdx import MdxStream
+from base import Element
 from cdda.image import CompactDiskAudioImageAdapter
 from cuesheet import BadCueSheet
 from cuesheet import parse_cue_sheet
-from elements import ErrorInvalidPath
-from elements import ExportManager
-from elements import Image
+from generalized.sample import Sample
+from structural import ErrorInvalidPath
+from structural import ExportManager
+from structural import Image
 from roland.s7xx.image import RolandSxxImageParser
 from roland.s7xx.image import is_roland_s7xx_image
 
@@ -106,8 +109,13 @@ def _wrap_filestream(func: Callable):
 
 @_wrap_filestream
 def ls_action(image: Image, path: str):
+
+    routines: Dict[str, Callable[[List[Element]], List[Element]]] = {
+        "make_safe_names": image.make_safe_names_routine
+    }
+
     try:
-        item = image.parse_path(path)
+        item = image.parse_path(path, routines)
     except ErrorInvalidPath as e:
         print(e)
         return
@@ -120,7 +128,9 @@ def ls_action(image: Image, path: str):
 @_wrap_filestream
 def export_samples_to_wav(image: Image, base_dir: str):
 
-    routines = {
+    routines: Dict[str, Callable[[List[Sample]], List[Sample]]] = {
+        "make_safe_names": image.make_safe_names_routine,
+        "make_export_names": image.make_export_names_routine,
         "combine_stereo": image.combine_stereo_routine
     }
 

@@ -31,11 +31,11 @@ from .data_types import AkaiMidiOutput
 from .data_types import AkaiTuneCents
 from .data_types import AkaiVoiceReassign
 from .data_types import AkaiProgramPriority
-from elements import ProgramElement
 from .keygroup import Keygroup
 from .keygroup import KeygroupAdapter
 from .keygroup import KeygroupConstruct
 from midi import MidiNote
+from structural import ProgramElement
 from util.constructs import BoolConstruct
 from util.constructs import EnumWrapper
 from util.constructs import MappingDefault

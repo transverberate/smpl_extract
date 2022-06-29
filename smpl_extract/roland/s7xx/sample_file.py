@@ -17,7 +17,6 @@ from typing import Optional
 from base import Element
 from .data_types import RolandLoopMode
 from .data_types import ROLAND_SAMPLE_WIDTH
-from elements import SampleElement
 from generalized.sample import ChannelConfig
 from generalized.sample import Endianness
 from generalized.sample import LoopRegion
@@ -27,6 +26,7 @@ from .patch_entry import PatchEntry
 from .sample_entry import SampleEntry
 from .sample_entry import SampleParamCommon
 from .sample_entry import SampleParamOptionsSection
+from structural import SampleElement
 from util.dataclass import get_common_field_args
 from util.stream import StreamOffset
 
@@ -248,7 +248,6 @@ class SampleFile(
         data_streams = [data_stream]
         result = Sample(
             name=self.name,
-            path=self.path,
             channel_config=ChannelConfig.MONO,
             endianness=Endianness.LITTLE,
             sample_rate=self.sampling_frequency,
@@ -258,7 +257,8 @@ class SampleFile(
             pitch_offset_semi=0,
             pitch_offset_cents=0,
             loop_regions=loop_regions,
-            data_streams=data_streams
+            data_streams=data_streams,
+            _path=self.path
         )
         return result
     

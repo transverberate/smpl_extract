@@ -27,7 +27,6 @@ from typing import cast
 
 from base import Element
 from base import ElementTypes
-from elements import Traversable
 from .data_types import MAX_NUM_PATCH
 from .data_types import NUM_KEYS
 from .data_types import PATCH_DIRECTORY_AREA_OFFSET
@@ -39,6 +38,7 @@ from .directory_area import DirectoryEntryParser
 from .partial_entry import PartialEntry
 from .partial_entry import PartialEntryAdapter
 from .partial_entry import PartialEntryConstruct
+from structural import Traversable
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
