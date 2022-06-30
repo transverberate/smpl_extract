@@ -6,6 +6,7 @@ sampler/audio disc image formats.
 ## Supported Formats
 ### Source Types
 - AKAI SX000 Disk Images
+- Roland S-7xx Disk Images
 - CDDA Data (Compact Disc Digital Audio) (requires `.cue`)
 
 ### Destination Types
@@ -282,6 +283,86 @@ loop_entries:
     repeat_forever: True
 
 ```
+
+### Exploring the contents of a Roland S-7xx image
+Roland S-7xx images are organized into 5 nested layers: `volumes`, `performances`,
+`patches`, `partials`, and `samples`. This toolset abstracts the 3 most granular layers
+(`patches`, `partials`, and `samples`) into the `program` and `sample` abstractions. 
+The `program` abstraction encodes the program/patch settings contained at the `patch`
+and `partial` levels while the `sample` abstraction encodes the sample/wave data.
+
+
+#### Listing the volumes in an image
+Consider a Roland S-770 disc image `s770example.bin` located in the folder `imgs` (relative to the 
+working directory). This image contains four volumes. Listing the volumes of the 
+image is accomplished by calling the command
+
+```
+python -m smpl_extract ls "./imgs/s770example.bin"
+```
+
+which prints the result
+
+```
+Item                 Type
+-----------------------------------------
+BTS:Basic Grooves    Roland S-7xx Volume
+BTS:Fluid Beats      Roland S-7xx Volume
+PRC:Standard Set     Roland S-7xx Volume
+DEM:Latest Release   Roland S-7xx Volume
+```
+
+#### Listing the performances in a volume
+Continuing with the `s770example.bin` example, suppose that volume
+`BTS:Basic Grooves` has 3 performances.
+Listing the performances within this volume is accomplished by 
+calling the command
+
+```
+python -m smpl_extract ls "./imgs/s770example.bin" "BTS:Basic Grooves"
+```
+
+which prints the result
+
+```
+Item                 Type
+---------------------------------------------
+80:Breakout          Roland S-7xx Performance
+100:Swing            Roland S-7xx Performance
+112:Classic          Roland S-7xx Performance
+```
+
+
+#### Listing the programs and samples in a performance
+Continuing with the `s770example.bin` example, suppose that performance
+`80:Breakout` has 1 program and 2 samples.
+Listing the program and samples within this performance is accomplished by 
+calling the command
+
+```
+python -m smpl_extract ls "./imgs/s770example.bin" "BTS:Basic Grooves/80:Breakout"
+```
+
+which prints the result
+
+```
+Item                 Type
+---------------------------------------------
+80:-Breakout         Roland S-7xx Program
+80:-Breakout L       Roland S-7xx Sample
+80:-Breakout R       Roland S-7xx Sample
+```
+
+#### Listing properties of a sample/program file
+Continuing with the `s770example.bin` example, listing the properties of the
+sample `80:-Breakout L` is accomplished by calling the command
+
+```
+python -m smpl_extract ls "./imgs/s770example.bin" "BTS:Basic Grooves/80:Breakout/80:-Breakout L"
+```
+
+which prints the result
+
 
 ### Extracting CDDA tracks as wav files
 Consider a CDDA bin/cue pair `backup.bin` and `backup.cue`, located in the
