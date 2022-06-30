@@ -128,13 +128,16 @@ def ls_action(image: Image, path: str):
 @_wrap_filestream
 def export_samples_to_wav(image: Image, base_dir: str):
 
-    routines: Dict[str, Callable[[List[Sample]], List[Sample]]] = {
-        "make_safe_names": image.make_safe_names_routine,
-        "make_export_names": image.make_export_names_routine,
+    sample_routines: Dict[str, Callable[[List[Sample]], List[Sample]]] = {
         "combine_stereo": image.combine_stereo_routine
     }
 
-    export_manager = ExportManager(base_dir, routines)
-    image.export_samples(export_manager)
+    routines: Dict[str, Callable[[List[Element]], List[Element]]] = {
+        "make_safe_names": image.make_safe_names_routine,
+        "make_export_names": image.make_export_names_routine
+    }
+
+    export_manager = ExportManager(base_dir, sample_routines)
+    image.export_samples(export_manager, routines)
     return
 

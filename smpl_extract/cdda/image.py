@@ -58,7 +58,10 @@ class AudioTrack(SampleElement):
             num_channels=2,
             num_audio_samples=self.num_audio_samples,
             data_streams=data_streams,
-            _path=self.path
+            _parent=self.parent,
+            _path=self.path,
+            _safe_name=self.safe_name,
+            _export_name=self.export_name
         )
         return result
 
@@ -74,6 +77,10 @@ class CompactDiskAudioImage(Image):
     @property
     def children(self):
         return self.tracks
+
+    def combine_stereo_routine(self, samples: List[Sample]) -> List[Sample]:
+        result = samples
+        return result
 
 
 class CompactDiskAudioImageAdapter:

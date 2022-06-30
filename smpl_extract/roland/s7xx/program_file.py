@@ -64,7 +64,7 @@ class ProgramFileAdapter(Adapter):
                     PartialParamSampleSectionCommon,
                     sample_ref_entry,
                 )
-                sample_name = sample_ref_entry.sample_entry.name
+                sample_name = sample_ref_entry.sample_entry.safe_name
                 sample_item = SampleReferenceItem(
                     **sample_ref_args,
                     sample=sample_name

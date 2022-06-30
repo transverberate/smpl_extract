@@ -114,7 +114,10 @@ class AkaiSample(SampleElement):
             pitch_offset_cents=self.pitch_cents,
             loop_regions=loop_regions,
             data_streams=data_streams,
-            _path=self.path
+            _parent=self.parent,
+            _path=self.path,
+            _safe_name=self.safe_name,
+            _export_name=self.export_name
         )
         return result
       

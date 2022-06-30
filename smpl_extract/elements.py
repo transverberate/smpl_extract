@@ -54,7 +54,7 @@ class LeafElement(Element):
 
 
     def get_info(self) -> Printable:
-        header = (self.name, " "*2, self.type_name)
+        header = (self.safe_name, " "*2, self.type_name)
         items = self.itemize()
         result = InfoTree(header, items)
         return result

@@ -258,7 +258,10 @@ class SampleFile(
             pitch_offset_cents=0,
             loop_regions=loop_regions,
             data_streams=data_streams,
-            _path=self.path
+            _parent=self.parent,
+            _path=self.path,
+            _safe_name=self.safe_name,
+            _export_name=self.export_name
         )
         return result
     
@@ -309,13 +312,14 @@ class SampleFileListAdapter(Adapter):
         patch_entry = cast(PatchEntry, obj)
         sc = SampleFileAdapter(Pass)
 
-        sample_files = []
+        sample_files = {}
         for partial_entry in patch_entry.partial_entries.values():
             for sample_entry in partial_entry.sample_entries:
-                sample_file = sc._decode(sample_entry, context, path)
-                sample_files.append(sample_file)
+                if sample_entry.index not in sample_files.keys():
+                    sample_file = sc._decode(sample_entry, context, path)
+                    sample_files[sample_entry.index] = sample_file
 
-        return sample_files
+        return sample_files.values()
 
 
     def _encode(self, obj, context, path):

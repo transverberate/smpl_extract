@@ -43,8 +43,8 @@ class Element(metaclass=ABCMeta):
     ) -> None:
         self._path = path or []
         self._parent = parent
-        self._safe_name = None
-        self._export_name = None
+        self._safe_name: Optional[str] = None
+        self._export_name: Optional[str] = None
 
     @property
     def path(self) -> List[str]:
@@ -77,6 +77,17 @@ class Element(metaclass=ABCMeta):
             if self._export_name is not None:
                 result = self._export_name
         return result
+
+    def export_path(self) -> List[str]:
+        current_path = self.path
+        if len(current_path) <= 0:
+            return []
+        new_path = []
+        current_node = self
+        while current_node is not None and len(current_node.path) > 0:
+            new_path = [current_node.export_name] + new_path
+            current_node = current_node.parent
+        return new_path
     
     @abstractmethod
     def get_info(self) -> Printable: ...  

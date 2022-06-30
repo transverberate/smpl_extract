@@ -70,11 +70,13 @@ class Sample(LeafElement):
     pitch_offset_semi:  Optional[int] = None
     pitch_offset_cents: Optional[int] = None
 
-    _path:               List[str] = field(default_factory=list)
+    _parent:            Optional[Element] = None
+    _path:              List[str] = field(default_factory=list)
+    _safe_name:         Optional[str] = None
+    _export_name:       Optional[str] = None
 
     type_id:            ClassVar[ElementTypes] = ElementTypes.SampleGeneralized
     type_name:          ClassVar[str] = "Sample (Generalized)"
-    parent:             ClassVar[Optional[Element]] = None
 
 
 def combine_stereo(left: Sample, right: Sample, new_name: Optional[str] = None) -> Sample:
@@ -87,8 +89,7 @@ def combine_stereo(left: Sample, right: Sample, new_name: Optional[str] = None) 
     result.channel_config = ChannelConfig.STEREO_SPLIT_STREAMS
     result.num_channels = len(result.data_streams)
     if new_name is not None:
-        result.name = new_name
-        result.path[-1] = new_name
+        result._export_name = new_name
 
     return result
 

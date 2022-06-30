@@ -4,7 +4,6 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from abc import ABCMeta
 from abc import abstractmethod
-import os
 import re
 from typing import Callable
 from typing import cast
@@ -19,6 +18,7 @@ from base import Element
 from base import ElementTypes
 from base import Printable
 from elements import LeafElement
+from generalized.sample import combine_stereo
 from generalized.sample import Sample
 from generalized.wav import export_wav
 from info import InfoTable
@@ -78,27 +78,9 @@ class ExportManager:
         self.level = ()
 
 
-    _SAFE_ENDING = re.compile(r"(.+?)\s*\.?\s*$")
-    _INVALID_FILE_NAME = re.compile(r"[^\w\-. ]+")
-    def sanitize_name(self, name: str, is_file=True)->str:
-        result = self._INVALID_FILE_NAME.sub(" ", name).strip()
-        match = self._SAFE_ENDING.match(result)
-        if match:
-            result = match.group(1)
-        if len(result) <= 0:
-            result = "0"
-        if is_file:
-            match = re.match(r"\w", result)
-            if not match:
-                result = "0" + result
-        return result
-
-
-    def make_output_path(self, sample_name: str) -> str:
-        components = list(self.level) + [sample_name]
-        components_safe = [self.sanitize_name(x, False) for x in components[:-1]]
-        components_safe += [self.sanitize_name(components[-1], True)]
-        result = "/".join(components_safe)
+    def make_output_path(self, sample: Sample) -> str:
+        components = sample.export_path()
+        result = "/".join(components)
         return result
 
 
@@ -108,7 +90,7 @@ class ExportManager:
             samples = f_routine(samples)
 
         for sample in samples:
-            inner_path = self.make_output_path(sample.name)
+            inner_path = self.make_output_path(sample)
             total_path = os.path.join(self.output_directory, inner_path) + ".wav"
             dir_name = os.path.dirname(total_path)
             if not os.path.exists(dir_name):
@@ -186,7 +168,7 @@ class Traversable(Element):
 
         current_node = self
         for i, token in enumerate(tokens):
-            token_upper = self._sanitize_string(token)
+            token_sanitized = self._sanitize_string(token)
 
             try:
                 if isinstance(current_node, Traversable):
@@ -196,7 +178,7 @@ class Traversable(Element):
 
                     child = next((
                         x for x in children 
-                        if self._sanitize_string(x.safe_name) == token_upper
+                        if self._sanitize_string(x.safe_name) == token_sanitized
                     ))
                     if not child:
                         raise ErrorNoChildWithName()
@@ -205,24 +187,38 @@ class Traversable(Element):
                 else:
                     raise ErrorNotTraversable
 
-            except (ErrorNoChildWithName, ErrorNotTraversable, StopIteration):
+            except (ErrorNoChildWithName, ErrorNotTraversable, StopIteration) as e:
                 path_so_far = "/".join(tokens[:i]) + "/" if current_node != self else "image"
                 msg = f"The entity \"{token}\" was not found in \"{path_so_far}\"."
                 raise ErrorInvalidPath(msg)
 
+        if isinstance(current_node, Traversable):
+            children = current_node.children
+            children = f_make_safe_names(children)
+
         return current_node
 
     
-    def export_samples(self, export_manager: ExportManager):
+    def export_samples(
+            self, 
+            export_manager: ExportManager,
+            routines: Optional[Dict[str, _T_ROUTINE]] = None
+    ):
         
+        routines = routines or {}
         export_manager.set_level(tuple(self.path))
-        for child in self.children:
+        children = self.children         
+        # apply routines
+        for f_routine in routines.values():
+            children = f_routine(children)
+
+        for child in children:
             if child.type_id == ElementTypes.SampleEntry:
                 child = cast(SampleElement, child)
                 sample = child.to_generalized()
                 export_manager.add_sample(sample)
             elif isinstance(child, Traversable):
-                child.export_samples(export_manager)
+                child.export_samples(export_manager, routines)
         
         export_manager.finish_level()
         return
@@ -240,19 +236,141 @@ class Image(Traversable):
             self, 
             samples: List[Sample]
     ) -> List[Sample]:
-        result = samples
+        sample_dict = {s.export_name: s for s in samples}
+        marked = {n: False for n in sample_dict}
+        result = []
+        for sample in samples:
+
+            result_sample = sample
+            name = sample.export_name
+            if marked[name]:
+                continue
+
+            match = self._STEREO_FILENAME.match(name)
+            if match:
+                alternate_ending = "R" if match.group(3) == "L" else "L"
+                alternate_name = "".join((
+                    match.group(1), 
+                    match.group(2), 
+                    alternate_ending
+                ))
+                if alternate_name in sample_dict.keys():
+                    alternate_sample = sample_dict[alternate_name]
+                    alternate_sample = cast(Sample, alternate_sample)
+                    if alternate_ending == "R":
+                        pairs = [sample, alternate_sample]
+                    else:
+                        pairs = [alternate_sample, sample]
+
+                    new_name = match.group(1)
+                    result_sample = combine_stereo(pairs[0], pairs[1], new_name)
+                    marked[alternate_name] = True
+                
+            result.append(result_sample)
+            marked[name] = True
+
+        return result
+
+
+    _INVALID_CHARS_REMOVE = re.compile(r"[\'\"\`]+")
+    _INVALID_CHARS_REPLACE = re.compile(r"([^\w\-=\:.@#&+ ]+|(?<!\w)\:+)")
+    def make_safe_name(self, name, is_file=True) -> str:
+        del is_file
+        safe_name = self._INVALID_CHARS_REMOVE.sub("", name)
+        safe_name = self._INVALID_CHARS_REPLACE.sub(" ", safe_name)
+        safe_name = safe_name.strip()
+        return safe_name
+
+
+    _SAFE_ENDING = re.compile(r"(.+?)\s*\.?\s*$")
+    _INVALID_FILE_NAME = re.compile(r"[^\w\-. ]+")
+    def make_export_name(self, name, is_file=True) -> str:
+        export_name = self.make_safe_name(name)
+        export_name = self._INVALID_FILE_NAME.sub(" ", name).strip()
+        match = self._SAFE_ENDING.match(export_name)
+        if match:
+            export_name = match.group(1)
+        if len(export_name) <= 0:
+            export_name = "0"
+        if is_file:
+            match = re.match(r"\w", export_name)
+            if not match:
+                export_name = "0" + export_name
+        return export_name
+
+
+    _STEREO_FILENAME = re.compile(r"(.*?)([\s-]+)(L|R)\s*$")
+    def _add_count_to_name(self, name: str, count: int) -> str:
+        count_str = "(" + str(count) + ")"
+        delim = " "
+        tokens = [name, count_str]
+        match = self._STEREO_FILENAME.match(name)
+        if match:
+            tokens = [
+                match.group(1),
+                count_str,
+                match.group(3)
+            ]
+        new_name = delim.join(tokens)
+        return new_name
+
+
+    def sanitize_names_general(
+            self, 
+            elements: List[_T],
+            f_sanitize: Callable[[str, bool], str],
+            f_set: Callable[[_T, str], None]
+    ) -> List[_T]:
+        candidate_names: Dict[str, List[_T]] = {}
+        for element in elements:
+            is_file = element.type_id != ElementTypes.DirectoryEntry
+            candidate_name = f_sanitize(element.name, is_file)
+
+            if candidate_name not in candidate_names.keys():
+                candidate_names[candidate_name] = []
+            candidate_names[candidate_name].append(element)
+
+        for name, subelements in candidate_names.items():
+            if len(subelements) == 1:
+                element = subelements[0]
+                f_set(element, name)
+                continue
+            
+            i = 0
+            for element in subelements:
+                i += 1
+                if i > 1:
+                    next_name = self._add_count_to_name(name, i)
+                    while (next_name in candidate_names.keys()):
+                        i += 1
+                        next_name = self._add_count_to_name(name, i)
+                        if i > len(candidate_names.keys()):
+                            raise Exception()
+                else:
+                    next_name = name
+                f_set(element, next_name)
+
+        result = elements
         return result
 
 
     def make_safe_names_routine(
             self, 
-            samples: List[_T]
+            elements: List[_T]
     ) -> List[_T]:
-        result = samples
+        result = self.sanitize_names_general(
+            elements,
+            self.make_safe_name,
+            lambda element, name: setattr(element, "_safe_name", name)
+        )
         return result
 
 
-    def make_export_names_routine(self, samples: List[_T]) -> List[_T]:
-        result = samples
+    def make_export_names_routine(self, elements: List[_T]) -> List[_T]:
+        result = self.sanitize_names_general(
+            elements,
+            self.make_export_name,
+            lambda element, name: setattr(element, "_export_name", name)
+        )
         return result
 

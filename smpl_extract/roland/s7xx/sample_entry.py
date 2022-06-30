@@ -217,6 +217,7 @@ class SampleEntryContainer:
 class SampleEntry(SampleParamCommon, SampleParamOptionsSection, Element):
     directory_name: str                     = ""
     parameter_name: str                     = ""
+    index:         int                      = 0
 
     _data_stream:   IOBase                  = field(default_factory=IOBase)
     _parent:        Optional[Element]       = None
@@ -278,6 +279,7 @@ class SampleEntryAdapter(Adapter):
             **options_args,
             directory_name=container.directory.name,
             parameter_name=container.parameter.name,
+            index=container.index,
             _data_stream=data_stream,
             _parent=parent,
             _path=sample_path
