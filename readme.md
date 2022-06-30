@@ -313,7 +313,7 @@ DEM:Latest Release   Roland S-7xx Volume
 ```
 
 #### Listing the performances in a volume
-Continuing with the `s770example.bin` example, suppose that volume
+Continuing with the `s770example.bin` example, suppose that the volume
 `BTS:Basic Grooves` has 3 performances.
 Listing the performances within this volume is accomplished by 
 calling the command
@@ -363,6 +363,32 @@ python -m smpl_extract ls "./imgs/s770example.bin" "BTS:Basic Grooves/80:Breakou
 
 which prints the result
 
+```
+80:-Breakout L   Roland S-7xx Sample
+--------------------------------------------------------------------------------
+sample_mode: Mono
+sampling_frequency: 44100
+sustain_loop_enable: 0
+sustain_loop_tune: 0
+release_loop_tune: 0
+original_key: C3
+loop_mode: Forward End
+start_sample:
+  fine: 0
+  address: 0
+sustain_loop_start:
+  fine: 0
+  address: 0
+sustain_loop_end:
+  fine: 0
+  address: 228667
+release_loop_start:
+  fine: 0
+  address: 230412
+release_loop_end:
+  fine: 0
+  address: 230424
+```
 
 ### Extracting CDDA tracks as wav files
 Consider a CDDA bin/cue pair `backup.bin` and `backup.cue`, located in the
@@ -433,6 +459,14 @@ output/B/SYNTH/BRASS2.wav
 stereo file `LEAD2.wav`. This is because samples whose names differ
 by only a terminal `L` or `R` indicate the left and right (respectively)
 channels of a single stereo sample. 
+
+
+### Extracting Roland S-7xx samples as wav files
+Extracting Roland S-7xx samples as `.wav`s can be accomplished 
+following the same command syntax in the preceding AKAI section.
+The directory structure of the exported `.wav`s has the form
+`<volume>/<performance>/<sample>`.
+
 
 ## Project Structure
 
