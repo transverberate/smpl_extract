@@ -72,7 +72,7 @@ class IdArea:
     revision: int
     model_version: str
     disk_type: str
-    disk_version: float
+    disk_version: str
     disk_name: str
     disk_capacity: int
     num_volumes: int
@@ -87,7 +87,7 @@ class IdAreaAdapter(Adapter):
 
     _S7XX_REGEX = re.compile(r"\s*S7\d\d\s+MR25A", flags=re.I)
     _VERSION_REGEX = re.compile(
-        r"\s*(S-\d+)\s+(\w+)\s+Disk\s+Ver\.?\s+(\d(\.\d+)?)\s*",
+        r"\s*(S-\d+)\s+(\w+)\s+Disk\s+Ver\.?\s*(\d(\.\d+)?\w*)\s*",
         flags=re.I
     )
     _COPYRIGHT_REGEX = re.compile(r"\s*Copyright\s+Roland", flags=re.I)
@@ -114,7 +114,7 @@ class IdAreaAdapter(Adapter):
 
         model_version = match_results[1].groups()[0]
         disk_type = match_results[1].groups()[1]
-        disk_version = float(match_results[1].groups()[2])
+        disk_version = match_results[1].groups()[2]
 
         result = IdArea(
             revision=container.revision,
@@ -179,7 +179,7 @@ class RolandS7xxImage(Image):
     revision: int
     model_version: str
     disk_type: str
-    disk_version: float
+    disk_version: str
     disk_name: str
     disk_capacity: int
     num_volumes: int
