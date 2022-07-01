@@ -1,16 +1,14 @@
-from io import BytesIO
 import os, sys
+_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
-from construct import Pass
-from smpl_extract.alcohol.mdf import MdfStream
-from smpl_extract.base import Element
-from smpl_extract.generalized.sample import Sample
-from smpl_extract.structural import ExportManager
-from smpl_extract.generalized.wav import export_wav
+from io import BytesIO
 import unittest
-from typing import Callable, Container, Dict, List, Optional
 
-from smpl_extract.util.stream import BadAlign, BadReadSize, StreamReversed
+from smpl_extract.util.stream import BadAlign
+from smpl_extract.util.stream import BadReadSize
+from smpl_extract.util.stream import StreamReversed
 
 
 def generate_consecutive_bytes(size: int, offset: int = 0, width = 1, reverse = False):

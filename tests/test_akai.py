@@ -1,12 +1,9 @@
 import os, sys
-
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 from construct.core import RangeError
-from construct.lib.containers import Container
-from dataclasses import asdict
 import unittest
 
 from smpl_extract.akai.data_types import AKAI_PARTITION_MAGIC
