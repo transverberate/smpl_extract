@@ -3,16 +3,15 @@ from io import IOBase
 from io import SEEK_CUR
 from io import SEEK_END
 from io import SEEK_SET
+import numpy as np
 from typing import Type
 from typing import Union
 
 
-class AttemptToReadBeyondBuffer(Exception):
-    pass
-
-
-class SectorReadError(Exception):
-    pass
+class AttemptToReadBeyondBuffer(Exception): ...
+class SectorReadError(Exception): ...
+class BadReadSize(Exception): ...
+class BadAlign(Exception): ...
 
 
 class StreamWrapper(IOBase):
@@ -27,6 +26,7 @@ class StreamWrapper(IOBase):
         self.end_of_file = size 
         self.position = position 
         self.buffer_length = buffer_length
+        self.true_size = buffer_length
 
 
     def _translate_addr(self, address: int)->int:
@@ -61,28 +61,30 @@ class StreamWrapper(IOBase):
         elif new_position < 0:
             new_position = 0
 
+        self.true_size = 0
         self._seek(new_position)
         self.position = new_position
         return new_position
 
 
     def read(self, size: Union[int, None])->bytes:
+        
+        if size is None or size < 0:
+            return self.readall()
+
+        self.true_size = size
+        if self.end_of_file is not None and self.end_of_file > 0:
+            self.true_size = min(self.end_of_file - self.position, size)
+        if self.true_size < 0:
+            self.true_size = 0
+
         true_position = self.substream.tell()
         expected_position = self._translate_addr(self.position)
         if expected_position != true_position:
             self._seek(self.position)
 
-        if size is None or size < 0:
-            return self.readall()
-
-        true_size = size
-        if self.end_of_file is not None and self.end_of_file > 0:
-            true_size = min(self.end_of_file - self.position, size)
-        if true_size < 0:
-            true_size = 0
-
-        result = self._read(true_size)
-        self.position += true_size
+        result = self._read(self.true_size)
+        self.position += self.true_size
         return result
 
 
@@ -120,6 +122,56 @@ class StreamOffset(StreamWrapper):
     def _translate_addr(self, address: int)->int:
         true_address = self.offset + address
         return true_address
+
+
+class StreamReversed(StreamWrapper):
+
+
+    def __init__(
+            self,
+            substream:      IOBase,
+            size:           int,
+            sample_width:   int = 1,
+            position:       int = 0,
+            buffer_length:  int = 0x1000,
+    ) -> None:
+        super().__init__(
+            substream,
+            size,
+            position=position,
+            buffer_length=buffer_length
+        )
+        self.sample_width = sample_width
+
+
+    def _translate_addr(self, address: int) -> int:
+        if self.true_size % self.sample_width != 0:
+            raise BadReadSize(
+                f"Read Size: {self.true_size} is not evenly "
+                f"divisible by {self.sample_width}."
+            )
+        true_address = self.end_of_file - (address + self.true_size)
+        if true_address % self.sample_width != 0:
+            raise BadAlign(
+                f"Position: {true_address} is not evenly "
+                f"divisible by {self.sample_width}."
+            )
+        return true_address
+
+    
+    def _read(self, size: int) -> bytes:
+        raw = super()._read(size)
+
+        arr = np.frombuffer(raw, np.dtype("int8"))
+        num_cols = self.sample_width
+        num_rows = size // self.sample_width
+
+        arr = np.reshape(arr, [num_rows, num_cols])
+        arr = np.flip(arr, 0)
+        arr = arr.flatten(order="C")
+
+        result = arr.tobytes()
+        return result
 
 
 def _singleton(x) -> Construct:

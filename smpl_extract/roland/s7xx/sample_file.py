@@ -1,4 +1,6 @@
 import os, sys
+
+from smpl_extract.util.stream import StreamReversed
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
@@ -189,14 +191,58 @@ def _get_reverse_oneshot_params(
         stream: IOBase, 
         points: RolandLoopPoints
 ) -> SampleParams:
-    raise NotImplementedError
+    offset_sample = points.start
+    num_samples = points.sustain_end - offset_sample + 1
+    stream_size = ROLAND_SAMPLE_WIDTH * num_samples
+
+    stream_result = StreamReversed(
+        StreamOffset(
+            stream,
+            stream_size,
+            ROLAND_SAMPLE_WIDTH * offset_sample
+        ),
+        stream_size,
+        sample_width=ROLAND_SAMPLE_WIDTH
+    )
+
+    result = SampleParams(
+        stream_result,
+        loops=[]
+    )
+    return result
 
 
 def _get_reverse_loop_params(
         stream: IOBase, 
         points: RolandLoopPoints
 ) -> SampleParams:
-    raise NotImplementedError
+    offset_sample = points.start
+    num_samples = points.sustain_end - offset_sample + 1
+    stream_size = ROLAND_SAMPLE_WIDTH * num_samples
+
+    stream_result = StreamReversed(
+        StreamOffset(
+            stream,
+            stream_size,
+            ROLAND_SAMPLE_WIDTH * offset_sample
+        ),
+        stream_size,
+        sample_width=ROLAND_SAMPLE_WIDTH
+    )
+
+    loop_start   = max(0, points.sustain_end - points.start)
+    loop_end     = max(0, points.sustain_end - points.sustain_start)
+
+    sustain_loop = LoopRegion(
+        start_sample=loop_start,
+        end_sample=loop_end,
+        repeat_forever=True
+    )
+    result = SampleParams(
+        stream_result,
+        loops=[sustain_loop]
+    )
+    return result
 
 
 @dataclass
