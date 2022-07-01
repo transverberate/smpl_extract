@@ -16,7 +16,7 @@ sampler/audio disc image formats.
 | Format              	|                  Typical Extension(s)          	|
 |---------------------	|:---------------------------------------------:	|
 | Raw Data            	| `.img`, `.bin`, and `.iso` (not a *true* iso) 	|
-| MODE1/2352 Raw Data 	|                      \|\|                     	|
+| MODE1/2352 Raw Data 	|               *same as* `Raw Data`              |
 | Cue sheet           	|               `.bin`/`.cue` pair              	|
 | Alcohol 120         	|               `.mdf` and `.mds`               	|
 
