@@ -284,7 +284,7 @@ class Image(Traversable):
 
 
     _SAFE_ENDING = re.compile(r"(.+?)\s*\.?\s*$")
-    _INVALID_FILE_NAME = re.compile(r"[^\w\-. ]+")
+    _INVALID_FILE_NAME = re.compile(r"[^\w\-\.# ]+")
     def make_export_name(self, name, is_file=True) -> str:
         export_name = self.make_safe_name(name)
         export_name = self._INVALID_FILE_NAME.sub(" ", name).strip()
