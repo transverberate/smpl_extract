@@ -28,6 +28,7 @@ class ErrorNoChildWithName(Exception): ...
 class ErrorNotTraversable(Exception): ...
 class ErrorInvalidPath(Exception): ...
 class ErrorInvalidName(Exception): ...
+class CouldNotDetermineName(Exception): ...
 
 
 _T_ROUTINE = Callable[[List[Element]],List[Element]]
@@ -341,11 +342,18 @@ class Image(Traversable):
                 i += 1
                 if i > 1:
                     next_name = self._add_count_to_name(name, i)
+                    j = 0
                     while (next_name in candidate_names.keys()):
                         i += 1
+                        j += 1
                         next_name = self._add_count_to_name(name, i)
-                        if i > len(candidate_names.keys()):
-                            raise Exception()
+                        if j > len(candidate_names.keys()):
+                            # This should never(?) happen
+                            raise CouldNotDetermineName(
+                                "Unable to determine proper (sanitized) "
+                                f"name for {element.name}. Too many name "
+                                "collisions."
+                            )
                 else:
                     next_name = name
                 f_set(element, next_name)
