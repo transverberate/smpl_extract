@@ -3,7 +3,6 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
-from construct.core import Adapter
 from construct.core import Computed
 from construct.core import Default
 from construct.core import ExprSymmetricAdapter
@@ -19,6 +18,8 @@ from construct.expr import this
 from construct.lib.containers import Container
 from dataclasses import dataclass
 from dataclasses import field
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -37,6 +38,8 @@ from .keygroup import KeygroupConstruct
 from midi import MidiNote
 from structural import ProgramElement
 from util.constructs import BoolConstruct
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from util.constructs import EnumWrapper
 from util.constructs import MappingDefault
 from util.dataclass import get_common_field_args
@@ -274,25 +277,27 @@ class Program(ProgramHeaderCommon, ProgramElement):
         return result
 
 
-class ProgramAdapter(Adapter):
+class ProgramAdapter(ElementAdapter):
+
 
     def _encode(self, obj, context, path):
         raise NotImplementedError
 
-    def _decode(self, obj: ProgramContainer, context, path)->Program:
+
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ) -> Program:
         del path  # Unused
         header_args = get_common_field_args(ProgramHeaderCommon, obj.header)
 
-        file_name = context.get("name", obj.header.program_name)
-        type_name = str(context.get("type", "AKAI Program"))
-        if "parent" in context.keys():
-            parent = context.parent
-            element_path = parent.path
-        else:
-            parent = None
-            element_path = []
-            
-        program_path = element_path + [file_name]
+        type_name = str(context.get("file_type", "AKAI Program"))
+        file_name = child_info.name or obj.header.program_name
+        parent = child_info.parent
+        program_path = child_info.parent_path + [file_name]
 
         result = Program(
             **header_args, 

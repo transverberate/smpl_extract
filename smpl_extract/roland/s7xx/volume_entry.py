@@ -19,6 +19,7 @@ import numpy as np
 from typing import Any
 from typing import Callable
 from typing import ClassVar
+from typing import Dict
 from typing import List
 from typing import cast
 
@@ -30,13 +31,13 @@ from .data_types import VOLUME_PARAMETER_AREA_OFFSET
 from .data_types import VOLUME_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
-from .performance_entry import PerformanceEntryAdapter
+from .performance_entry import PerformanceEntry, PerformanceEntryAdapter
 from .performance_entry import PerformanceEntryConstruct
 from structural import Traversable
+from util.constructs import ElementAdapter
+from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
-from util.constructs import pass_expression_deeper
-from util.constructs import wrap_context_parent
 
 
 VolumeParamEntryStruct = Struct(
@@ -110,19 +111,22 @@ class VolumeEntryContainer:
 
 
 @dataclass
-class VolumeEntry(Traversable):
+class VolumeEntry(Traversable[PerformanceEntry]):
     index:                  int
     directory_name:         str
     parameter_name:         str
-    _f_performance_entries: Callable
+    _f_realize_children:    Callable[[Dict[str, Any]], List[PerformanceEntry]]
 
     type_id:                ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
     type_name:              ClassVar[str]           = "Roland S-7xx Volume"
 
 
     def __post_init__(self):
-        self._performance_entries = None
-
+        self._path = []
+        self._parent = None
+        self._routines = {}
+        self._children = None
+        
 
     @property
     def name(self):
@@ -132,14 +136,7 @@ class VolumeEntry(Traversable):
 
     @property
     def performance_entries(self):
-        if not self._performance_entries:
-            self._performance_entries = self._f_performance_entries()
-        return self._performance_entries
-
-
-    @property
-    def children(self):
-        result = list(self.performance_entries.values())
+        result = self.children
         return result
 
 
@@ -149,21 +146,26 @@ class VolumeEntry(Traversable):
         return result
 
 
-class VolumeEntryAdapter(Adapter):
+class VolumeEntryAdapter(ElementAdapter):
 
+    def _decode_element(
+            self, 
+            obj, 
+            children_info,
+            context: Dict[str, Any], 
+            path: str
+    ):
+        del children_info, path
 
-    def _decode(self, obj, context, path) -> VolumeEntry:
         container = cast(VolumeEntryContainer, obj)
         volume = VolumeEntry(
             container.index,
             container.directory.name,
             container.parameter.name,
-            lambda: None,
-        )
-        volume._f_performance_entries = wrap_context_parent(
-            container.performance_entries,
-            context,
-            volume
+            _f_realize_children=self.wrap_child_realization(  # type: ignore
+                container.performance_entries,
+                context
+            )
         )
 
         return volume

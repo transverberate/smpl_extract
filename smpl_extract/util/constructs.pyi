@@ -1,3 +1,4 @@
+from collections import namedtuple
 from construct.core import Adapter
 from construct.core import Array
 from construct.core import BuildTypes
@@ -45,14 +46,59 @@ def wrap_context_parent(
 
 
 T = TypeVar('T', bound=IntEnum)
-class EnumWrapper(Generic[T], Adapter):
+class EnumWrapper(Generic[T], Adapter[Any, Any, Any, Any]):
     def __new__(cls, subcon: Construct, mapping: Type[T])->Adapter:
+        ...
+
+
+ChildInfo = namedtuple("ChildInfo", [
+    "parent",
+    "parent_path", 
+    "next_path", 
+    "routines",
+    "name"
+])
+
+
+def pull_child_info(
+    context: Dict[str, Any], 
+    name: Optional[str] = None
+) -> ChildInfo:
+    ...
+
+
+class ElementAdapter(Adapter): 
+
+
+    def __new__(cls, subcon, name_key: Optional[str] = None) -> None:
+        ...
+
+    
+    def __init__(self, subcon, name_key: Optional[str] = None) -> None:
+        ...
+
+
+    def wrap_child_realization(
+        self,
+        f_realize: Callable[[], List[Element]],
+        context: Dict[str, Any]
+    ) -> Callable[[Dict[str, Any]], List[Element]]:
+        ...
+
+
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ):
         ...
 
 
 U = TypeVar('U')
 V = TypeVar('V')
-class MappingDefault(Generic[U, V], Mapping):
+class MappingDefault(Generic[U, V], Mapping[Any, Any]):
 
 
     def __new__(
@@ -104,7 +150,7 @@ class PaddedGeneral(
             count: ConstantOrContextLambda[int],
             subcon: Construct,
             pattern: SubconBuildTypes,
-            predicate: Callable[[SubconBuildTypes, Context], bool] = None
+            predicate: Optional[Callable[[SubconBuildTypes, Context], bool]] = None
     )->Subconstruct[SubconParsedType, SubconBuildTypes, ParsedType, BuildTypes]:
         ...
 

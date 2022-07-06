@@ -15,16 +15,16 @@ from alcohol.mdf import is_mdf_image
 from alcohol.mdf import MdfStream
 from alcohol.mdx import is_mdx_image
 from alcohol.mdx import MdxStream
-from base import Element
 from cdda.image import CompactDiskAudioImageAdapter
 from cuesheet import BadCueSheet
 from cuesheet import parse_cue_sheet
-from generalized.sample import Sample
+from roland.s7xx.image import RolandSxxImageParser
+from roland.s7xx.image import is_roland_s7xx_image
 from structural import ErrorInvalidPath
 from structural import ExportManager
 from structural import Image
-from roland.s7xx.image import RolandSxxImageParser
-from roland.s7xx.image import is_roland_s7xx_image
+from structural import T_ROUTINE
+from structural import T_SAMPLE_ROUTINE
 
 
 class BadTextFile(Exception): pass
@@ -110,12 +110,15 @@ def _wrap_filestream(func: Callable):
 @_wrap_filestream
 def ls_action(image: Image, path: str):
 
-    routines: Dict[str, Callable[[List[Element]], List[Element]]] = {
-        "make_safe_names": image.make_safe_names_routine
+    routines: Dict[str, T_ROUTINE] = {
+        "make_safe_names": image.make_safe_names_routine,
+        "make_export_names": image.make_export_names_routine
     }
 
+    image.set_routines(routines)
+
     try:
-        item = image.parse_path(path, routines)
+        item = image.parse_path(path)
     except ErrorInvalidPath as e:
         print(e)
         return
@@ -128,16 +131,16 @@ def ls_action(image: Image, path: str):
 @_wrap_filestream
 def export_samples_to_wav(image: Image, base_dir: str):
 
-    sample_routines: Dict[str, Callable[[List[Sample]], List[Sample]]] = {
-        "combine_stereo": image.combine_stereo_routine
-    }
-
-    routines: Dict[str, Callable[[List[Element]], List[Element]]] = {
+    routines: Dict[str, T_ROUTINE] = {
         "make_safe_names": image.make_safe_names_routine,
         "make_export_names": image.make_export_names_routine
     }
+    sample_routines: Dict[str, T_SAMPLE_ROUTINE] = {
+        "combine_stereo": image.combine_stereo_routine
+    }
 
+    image.set_routines(routines)
     export_manager = ExportManager(base_dir, sample_routines)
-    image.export_samples(export_manager, routines)
+    image.export_samples(export_manager)
     return
 

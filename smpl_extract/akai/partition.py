@@ -3,8 +3,13 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
-from typing import Callable, List, Optional
-from typing import OrderedDict
+from typing import Any
+from typing import Callable
+from typing import ClassVar
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import cast
 from construct.core import Bytes
 from construct.core import ConstructError
 from construct.core import Const
@@ -12,7 +17,6 @@ from construct.core import Int8ul
 from construct.core import Lazy
 from construct.core import Rebuild
 from construct.core import Struct
-from construct.core import Subconstruct
 from construct.core import Int16ul
 from construct.core import Computed
 from construct.core import Tell
@@ -26,8 +30,10 @@ from .data_types import AKAI_VOLUME_ENTRY_CNT
 from .data_types import InvalidCharacter
 from .sat import SegmentAllocationTable
 from .sat import SegmentAllocationTableAdapter
+from structural import T_ROUTINE
 from structural import Traversable
-from util.constructs import wrap_context_parent
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
 from .volume import Volume
@@ -42,22 +48,27 @@ class InvalidPartition(Exception):
 class Partition(Traversable):
 
 
+    type_name: ClassVar[str] = "Partition"
+
+
     def __init__(
             self,
             f_sat: Callable[[], SegmentAllocationTable],
-            f_volumes: Callable[[], OrderedDict[str, Volume]],
+            f_volumes: Callable[[Dict[str, Any]], List[Element]],
             name: str,
             parent: Optional[Element] = None,
-            path: Optional[List[str]] = None
+            path: Optional[List[str]] = None,
+            routines: Optional[Dict[str, T_ROUTINE]] = None
     ) -> None:
+        super().__init__(
+            f_realize_children=f_volumes,
+            routines=routines,
+            path=path,
+            parent=parent
+        )
         self._f_sat = f_sat
         self._sat = None
-        self._f_volumes = f_volumes
-        self._volumes = None
         self.name = name
-        self.type_name = "Partition"
-        self._parent = parent
-        self._path = path or []
 
     
     @property
@@ -69,17 +80,11 @@ class Partition(Traversable):
 
     @property
     def volumes(self):
-        if not self._volumes:
-            self._volumes = self._f_volumes()
-        return self._volumes
+        result = cast(List[Volume], self.children)
+        return result
 
 
-    @property
-    def children(self):
-        return self.volumes
-
-
-class PartitionAdapter(Subconstruct):
+class PartitionAdapter(ElementAdapter):
     def _parse(self, stream, context, path):
 
         try:
@@ -94,24 +99,38 @@ class PartitionAdapter(Subconstruct):
         if partition_container.header.size <= 0:
             raise ConstructError
 
-        partition_name = context["name"]
+        result = self._decode(partition_container, context, path)
+        return result
+
+
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ):
+        del path  # unused
+        partition_container = obj
+
+        partition_name = child_info.name
+        parent = child_info.parent
+        element_path = child_info.next_path
+        routines = child_info.routines
+
         if len(partition_name) > 0 and partition_name[-1] != ":":
             partition_name = partition_name + ":"
-        parent: Element = context["parent"]
-        element_path = parent.path + [partition_name]
 
         partition = Partition(
             partition_container.sat,
-            lambda: OrderedDict(),
+            self.wrap_child_realization(
+                partition_container.volumes,
+                context
+            ),
             partition_name,
             parent,
-            element_path
-        )
-
-        partition._f_volumes = wrap_context_parent(
-            partition_container.volumes,
-            context,
-            partition
+            element_path,
+            routines=routines
         )
         
         return partition
@@ -147,16 +166,16 @@ PartitionParser = PartitionAdapter(
             this.header.partition_stream,
             Int16ul[AKAI_SAT_ENTRY_CNT]  # type: ignore
         ),  
-        "volumes" / Lazy(VolumesAdapter(
+        "volumes" / Lazy(VolumesAdapter(  
             this.volume_entries,
             this.sat,  # type: ignore
-            Lazy(Bytes(
+            Lazy(Bytes(  # type: ignore
             lambda this: this.header.total_size \
                 - PartitionHeaderConstruct.sizeof() \
                 - VolumeEntryConstruct[AKAI_VOLUME_ENTRY_CNT].sizeof() \
                 - Int16ul[AKAI_SAT_ENTRY_CNT].sizeof()
             )),
-        ))
+        ))  
     )
 ).compile()
 

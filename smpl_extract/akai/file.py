@@ -17,7 +17,7 @@ from util.fat import RequestedInvalidSector
 
 
 FileConstruct = Switch(
-    this.type,
+    this.file_type,
     {
         FileType.SAMPLE_S1000:  SampleAdapter(SampleHeaderConstruct),
         FileType.SAMPLE_S3000:  SampleAdapter(SampleHeaderConstruct),

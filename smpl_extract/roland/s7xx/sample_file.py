@@ -1,6 +1,4 @@
 import os, sys
-
-from smpl_extract.util.stream import StreamReversed
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
@@ -10,8 +8,10 @@ from construct.core import Pass
 from dataclasses import dataclass
 from dataclasses import field
 from io import IOBase
+from typing import Any
 from typing import cast
 from typing import ClassVar
+from typing import Dict
 from typing import List
 from typing import NamedTuple
 from typing import Optional
@@ -29,8 +29,11 @@ from .sample_entry import SampleEntry
 from .sample_entry import SampleParamCommon
 from .sample_entry import SampleParamOptionsSection
 from structural import SampleElement
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from util.dataclass import get_common_field_args
 from util.stream import StreamOffset
+from util.stream import StreamReversed
 
 
 class RolandLoopPoints(NamedTuple):
@@ -312,18 +315,21 @@ class SampleFile(
         return result
     
 
-class SampleFileAdapter(Adapter):
+class SampleFileAdapter(ElementAdapter):
 
+    def _decode_element(
+                self, 
+                obj, 
+                child_info: ChildInfo, 
+                context: Dict[str, Any], 
+                path: str
+        ):
+        del context, path  # unused
 
-    def _decode(self, obj, context, path):
         sample_entry = cast(SampleEntry, obj)
 
-        parent: Optional[Element] = None
-        element_path = []
-        if "_" in context.keys():
-            if "parent" in context._.keys():
-                parent = cast(Element, context._.parent)
-                element_path = parent.path
+        parent = child_info.parent
+        element_path = child_info.parent_path
         
         name = sample_entry.name
         sample_path = element_path + [name]
@@ -359,13 +365,13 @@ class SampleFileListAdapter(Adapter):
         sc = SampleFileAdapter(Pass)
 
         sample_files = {}
-        for partial_entry in patch_entry.partial_entries.values():
+        for partial_entry in patch_entry.partial_entries:
             for sample_entry in partial_entry.sample_entries:
                 if sample_entry.index not in sample_files.keys():
                     sample_file = sc._decode(sample_entry, context, path)
                     sample_files[sample_entry.index] = sample_file
 
-        return sample_files.values()
+        return list(sample_files.values())
 
 
     def _encode(self, obj, context, path):

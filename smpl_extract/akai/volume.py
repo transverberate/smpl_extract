@@ -3,11 +3,11 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 
 from dataclasses import dataclass
-from typing import List
-from typing import cast
+from typing import Any
+from typing import Dict
 from typing import Iterable
+from typing import List
 from typing import Optional
-from construct.core import Adapter
 from construct.core import Computed
 from construct.core import ConstructError
 from construct.core import Int16ul
@@ -22,7 +22,10 @@ from .file_entry import FileEntriesAdapter
 from .file_entry import FileEntryConstruct
 from .file_entry import InvalidFileEntry
 from .file_entry import FileEntry
+from structural import T_ROUTINE
 from structural import Traversable
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from util.constructs import EnumWrapper
 
 
@@ -32,19 +35,24 @@ class Volume(Traversable):
     def __init__(
             self,
             name: str = "",
+            volume_type: VolumeType = VolumeType.INACTIVE,
             parent: Optional[Element] = None,
             path: Optional[List[str]] = None,
-            volume_type: VolumeType = VolumeType.INACTIVE,
+            routines: Optional[Dict[str, T_ROUTINE]] = None,
             file_entries: Optional[List[FileEntry]] = None
     ) -> None:
+        super().__init__(
+            f_realize_children=lambda x: [],
+            routines=routines,
+            path=path,
+            parent=parent,
+            type_name=str(volume_type or "AKAI Volume")
+        )
         self.name = name
         self.volume_type = volume_type
-        self.type_name = str(volume_type or "AKAI Volume")
         self.file_entries = file_entries or []
         self._is_files_realized = False
         self._files = []
-        self._parent = parent
-        self._path = path or []
 
 
     def _realize_files(self):
@@ -60,10 +68,14 @@ class Volume(Traversable):
 
         
     @property
-    def files(self)->List[FileEntry]:
+    def files(self) -> List[FileEntry]:
         if not self._is_files_realized:
             self._realize_files()
-        return self._files
+            files = self._files
+            for routine in self._routines.values():
+                files = routine(files)
+            self._files = files
+        return self._files  # type: ignore
 
 
     @property
@@ -92,7 +104,7 @@ class VolumeEntryContainer(Container):
     start:  int
 
 
-class VolumesAdapter(Adapter):
+class VolumesAdapter(ElementAdapter):
 
 
     def __init__(
@@ -101,12 +113,19 @@ class VolumesAdapter(Adapter):
             sat, 
             subcon
     ):
-        super().__init__(subcon)  # type: ignore
+        super().__init__(subcon)
         self.volume_entries = volume_entries
         self.sat = sat
 
 
-    def _decode(self, obj, context, path)->List[Volume]:
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ) -> List[Volume]:
+    
         del obj, path  # Unused
 
         if callable(self.volume_entries):
@@ -115,11 +134,8 @@ class VolumesAdapter(Adapter):
             volume_entries = self.volume_entries 
         sat = self.sat(context) if callable(self.sat) else self.sat
 
-        parent: Optional[Element] = None
-        element_path = []
-        if "_" in context.keys() and "parent" in context._.keys():
-            parent = cast(Element, context._.parent)
-            element_path = parent.path
+        parent = child_info.parent
+        parent_path = child_info.parent_path
 
         volumes: List[Volume] = list()
         for volume_entry in volume_entries:
@@ -129,20 +145,22 @@ class VolumesAdapter(Adapter):
                 name            = volume_entry.name
                 volume_sector   = volume_entry.start
                 volume_stream = sat.get_segment(volume_sector)
-                volume_path = element_path + [name]
+                volume_path = parent_path + [name]
 
                 volume = Volume(
-                    name,
-                    parent,
-                    volume_path,
-                    volume_type
+                    name=name,
+                    volume_type=volume_type,
+                    parent=parent,
+                    path=volume_path,
+                    routines=child_info.routines
                 )
 
                 volume_body = VolumeBodyConstruct.parse_stream(
                     volume_stream,
                     _=context,
                     sat=sat,
-                    parent=volume
+                    _elem_parent=volume,
+                    _elem_routines=child_info.routines
                 )
 
                 if volume_body is None:

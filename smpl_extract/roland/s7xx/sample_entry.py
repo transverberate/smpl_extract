@@ -20,7 +20,9 @@ from construct.core import PaddedString
 from construct.core import Padding
 from construct.core import Pointer
 from construct.core import Struct
+from typing import Any
 from typing import ClassVar
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import cast
@@ -40,6 +42,8 @@ from .directory_area import DirectoryEntryParser
 from .fat import RolandFileAllocationTable
 from info import InfoTable
 from midi import MidiNote
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from util.constructs import MappingDefault
 from util.constructs import pass_expression_deeper
 from util.constructs import UnsizedConstruct
@@ -238,22 +242,24 @@ class SampleEntry(SampleParamCommon, SampleParamOptionsSection, Element):
         return result
 
 
-class SampleEntryAdapter(Adapter):
+class SampleEntryAdapter(ElementAdapter):
 
 
-    def _decode(self, obj, context, path) -> SampleEntry:
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ):
+        del path  # unused
+
         container = cast(SampleEntryContainer, obj)
 
-        parent: Optional[Element] = None
-        element_path = []
-        if "_" in context.keys():
-            if "parent" in context._.keys():
-                parent = cast(Element, context._.parent)
-                element_path = parent.path
-            if "fat" in context._.keys():
-                fat = cast(RolandFileAllocationTable, context._.fat)
-            else:
-                raise FatNotPresent
+        parent = child_info.parent
+        element_path = child_info.parent_path
+        if "_" in context.keys() and "fat" in context["_"].keys():
+            fat = cast(RolandFileAllocationTable, context["_"]["fat"])
         else:
             raise FatNotPresent
 

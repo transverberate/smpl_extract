@@ -20,6 +20,7 @@ from construct.core import Pointer
 from construct.core import Struct
 from construct.core import Subconstruct
 from construct.lib.containers import ListContainer
+from typing import Dict
 from typing import cast
 from typing import ClassVar
 from typing import List
@@ -37,8 +38,10 @@ from .directory_area import DirectoryEntryParser
 from .sample_entry import SampleEntry
 from .sample_entry import SampleEntryAdapter
 from .sample_entry import SampleEntryConstruct
+from structural import T_ROUTINE
 from structural import Traversable
 from util.constructs import pass_expression_deeper
+from util.constructs import pull_child_info
 from util.constructs import UnsizedConstruct
 from util.dataclass import get_common_field_args
 
@@ -288,18 +291,19 @@ class SampleEntryReferenceAdapter(Subconstruct):
 
 
 @dataclass
-class PartialEntry(PartialParamCommon, Traversable):
+class PartialEntry(PartialParamCommon, Traversable[SampleEntry]):
     directory_name: str = ""
     parameter_name: str = ""
 
     sample_entry_references: List[SampleEntryReference] = \
         field(default_factory=list)
 
-    _parent:    Optional[Element]       = None
-    _path:      List[str]               = field(default_factory=list)
+    _parent:                Optional[Element]       = None
+    _path:                  List[str]               = field(default_factory=list)
+    _routines:              Dict[str, T_ROUTINE]    = field(default_factory=dict)
 
-    type_id:    ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
-    type_name:  ClassVar[str]           = "Roland S-7xx Partial"
+    type_id:                ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
+    type_name:              ClassVar[str]           = "Roland S-7xx Partial"
 
 
     def __post_init__(self):
@@ -313,7 +317,7 @@ class PartialEntry(PartialParamCommon, Traversable):
     
 
     @property
-    def sample_entries(self):
+    def sample_entries(self) -> List[SampleEntry]:
         if not self._sample_entries:
             sample_entries = []
             path = self.path
@@ -324,8 +328,10 @@ class PartialEntry(PartialParamCommon, Traversable):
                 sample_entry._path = new_path
                 sample_entries.append(sample_entry)
             
+            for routine in self._routines.values():
+                sample_entries = routine(sample_entries)
             self._sample_entries = sample_entries
-        return self._sample_entries
+        return self._sample_entries  # type: ignore
 
 
     @property
@@ -361,17 +367,9 @@ class PartialEntryAdapter(Subconstruct):
                 continue
             sample_references.append(sample_reference)
 
-        parent: Optional[Element] = None
-        element_path = []
-        if "_" in context.keys():
-            if "parent" in context._.keys():
-                parent = cast(Element, context._.parent)
-                element_path = parent.path
-            if "fat" in context._.keys():
-                context["fat"] = context._.fat
-
         name = container.directory.name
-        partial_path = element_path + [name]
+        child_info = pull_child_info(context, name)
+        parent = child_info.parent
 
         common_args = get_common_field_args(
             PartialParamCommon, 
@@ -384,7 +382,8 @@ class PartialEntryAdapter(Subconstruct):
             parameter_name=container.parameter.name,
             sample_entry_references=sample_references,
             _parent=parent,
-            _path=partial_path
+            _path=child_info.next_path,
+            _routines=child_info.routines
         )
         try:
             dir_version = context["_"]["_dir_version"]

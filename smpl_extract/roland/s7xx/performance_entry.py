@@ -21,14 +21,18 @@ from construct.core import Pointer
 from construct.core import Struct
 from construct.lib.containers import Container
 import numpy as np
+from typing import Any
 from typing import Callable
-from typing import ClassVar
-from typing import List
 from typing import cast
+from typing import ClassVar
+from typing import Dict
+from typing import List
 from typing import Optional
+from typing import Union
 
 from base import Element
 from base import ElementTypes
+from .fat import RolandFileAllocationTable
 from .data_types import MAX_NUM_PERFORMANCE
 from .data_types import PERFORMANCE_DIRECTORY_AREA_OFFSET
 from .data_types import PERFORMANCE_DIRECTORY_ENTRY_SIZE
@@ -38,13 +42,16 @@ from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
 from .patch_entry import PatchEntryAdapter
 from .patch_entry import PatchEntryConstruct
+from .program_file import ProgramFile
 from .program_file import ProgramFileAdapter
+from .sample_file import SampleFile
 from .sample_file import SampleFileListAdapter
+from structural import T_ROUTINE
 from structural import Traversable
+from util.constructs import ElementAdapter
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
-from util.constructs import wrap_context_parent
 from util.dataclass import get_common_field_args
 
 
@@ -152,12 +159,17 @@ class PerformanceEntryContainer:
 
 
 @dataclass
-class PerformanceEntry(PerformanceParamCommon, Traversable):
+class PerformanceEntry(
+        PerformanceParamCommon, 
+        Traversable[Union[ProgramFile, SampleFile]]
+):
     directory_name:     str                     = ""
     parameter_name:     str                     = ""
+    _fat:               Optional[RolandFileAllocationTable] = None
     _f_patch_entries:   Callable                = lambda x: None
     _parent:            Optional[Element]       = None
     _path:              List[str]               = field(default_factory=list)
+    _routines:          Dict[str, T_ROUTINE]    = field(default_factory=dict)
 
     type_id:            ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
     type_name:          ClassVar[str]           = "Roland S-7xx Performance"
@@ -177,7 +189,12 @@ class PerformanceEntry(PerformanceParamCommon, Traversable):
     @property
     def patch_entries(self):
         if not self._patch_entries:
-            self._patch_entries = self._f_patch_entries()
+            added_context = {
+                "_elem_parent": self,
+                "_elem_routines": self._routines,
+                "fat": self._fat
+            }
+            self._patch_entries = self._f_patch_entries(added_context)
         return self._patch_entries
 
 
@@ -186,8 +203,11 @@ class PerformanceEntry(PerformanceParamCommon, Traversable):
         if self._files is None:
             sc_program = ProgramFileAdapter(Pass)
             sc_samples = SampleFileListAdapter(Pass)
-            patches = list(self.patch_entries.values())
-            context = Container(_=Container(parent=self))
+            patches = list(self.patch_entries)
+            context = Container(_=Container(
+                _elem_parent=self,
+                _elem_routines=self._routines
+            ))
             path = ""
 
             programs = []
@@ -209,53 +229,63 @@ class PerformanceEntry(PerformanceParamCommon, Traversable):
                 samples += samples_result
             
             files = programs + samples
+
+            for routine in self._routines.values():
+                files = routine(files)  # type: ignore
             self._files = files
 
         return self._files
 
 
     @property
-    def children(self):
+    def children(self) -> List[Union[ProgramFile, SampleFile]]:
         result = self.files
-        return result
+        return result  # type: ignore
 
 
-class PerformanceEntryAdapter(Adapter):
+class PerformanceEntryAdapter(ElementAdapter):
 
 
-    def _decode(self, obj, context, path) -> PerformanceEntry:
+    def _decode_element(
+            self, 
+            obj, 
+            child_info, 
+            context: Dict[str, Any], 
+            path: str
+    ) -> PerformanceEntry:
+        del path
+
         container = cast(PerformanceEntryContainer, obj)
 
-        parent: Optional[Element] = None
-        element_path = []
-        if "_" in context.keys():
-            if "parent" in context._.keys():
-                parent = cast(Element, context._.parent)
-                element_path = parent.path
-            if "fat" in context._.keys():
-                context["fat"] = context._.fat
-
+        parent = child_info.parent
         name = container.directory.name
-        performance_path = element_path + [name]
+        performance_path = child_info.parent_path + [name]
 
         common_args = get_common_field_args(
             PerformanceParamCommon, 
             container.parameter
         )
 
+        try:
+            fat = context["_"]["fat"]
+            context["fat"] = fat
+        except KeyError as e:
+            fat = None
+
         performance = PerformanceEntry(
             **common_args,
             directory_name=container.directory.name,
             parameter_name=container.parameter.name,
-            _f_patch_entries=lambda: None,
+            _f_patch_entries=self.wrap_child_realization(
+                container.patch_entries,
+                context
+            ),
+            _fat=fat,
             _parent=parent,
-            _path=performance_path
+            _path=performance_path,
+            _routines=child_info.routines
         )
-        performance._f_patch_entries = wrap_context_parent(
-            container.patch_entries,
-            context,
-            performance
-        )
+
         try:
             dir_version = context["_"]["_dir_version"]
             context["_dir_version"] = dir_version

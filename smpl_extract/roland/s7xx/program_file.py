@@ -3,11 +3,12 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
 
-from construct.core import Adapter
 from dataclasses import dataclass
 from dataclasses import field
+from typing import Any
 from typing import cast
 from typing import ClassVar
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -17,6 +18,8 @@ from .partial_entry import PartialParamSampleSectionCommon
 from .patch_entry import PatchEntry
 from .patch_entry import PatchParamEntryCommon
 from structural import ProgramElement
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from util.dataclass import get_common_field_args
 
 
@@ -40,10 +43,18 @@ class ProgramFile(PatchParamEntryCommon,  ProgramElement):
     type_name:          ClassVar[str]           = "Roland S-7xx Program"
 
 
-class ProgramFileAdapter(Adapter):
+class ProgramFileAdapter(ElementAdapter):
 
 
-    def _decode(self, obj, context, path) -> ProgramFile:
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+        ) -> ProgramFile:
+        del child_info, context, path
+
         patch_entry = cast(PatchEntry, obj)
         patch_args = get_common_field_args(
             PatchParamEntryCommon,
@@ -52,13 +63,14 @@ class ProgramFileAdapter(Adapter):
 
         partial_items = []
 
-        for partial_entry in patch_entry.partial_entries.values():
+        for partial_entry in patch_entry.partial_entries:
             partial_args = get_common_field_args(
                 PartialParamCommon,
                 partial_entry
             )
 
             sample_items = []
+            partial_entry.sample_entries  # needed to ensure routines are run
             for sample_ref_entry in partial_entry.sample_entry_references:
                 sample_ref_args = get_common_field_args(
                     PartialParamSampleSectionCommon,

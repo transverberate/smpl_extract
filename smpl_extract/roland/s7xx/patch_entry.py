@@ -18,6 +18,7 @@ from construct.core import Padding
 from construct.core import Pointer
 from construct.core import Struct
 import numpy as np
+from typing import Any
 from typing import Callable
 from typing import ClassVar
 from typing import Dict
@@ -38,11 +39,13 @@ from .directory_area import DirectoryEntryParser
 from .partial_entry import PartialEntry
 from .partial_entry import PartialEntryAdapter
 from .partial_entry import PartialEntryConstruct
+from structural import T_ROUTINE
 from structural import Traversable
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from util.constructs import pass_expression_deeper
 from util.constructs import SafeListConstruct
 from util.constructs import UnsizedConstruct
-from util.constructs import wrap_context_parent
 from util.dataclass import get_common_field_args
 
 
@@ -245,18 +248,17 @@ class PatchEntryContainer:
 
 @dataclass
 class PatchEntry(PatchParamEntryCommon, Traversable):
-    directory_name:     str                     = ""
-    parameter_name:     str                     = ""
-    _f_partial_entries: Callable                = lambda x: None
-    _parent:            Optional[Element]       = None
-    _path:              List[str]               = field(default_factory=list)
+    directory_name:         str                     = ""
+    parameter_name:         str                     = ""
+    _f_realize_children:    Callable                = lambda x: None
+    _parent:                Optional[Element]       = None
+    _path:                  List[str]               = field(default_factory=list)
+    _routines:              Dict[str, T_ROUTINE]    = field(default_factory=dict)
 
-    type_id:            ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
-    type_name:          ClassVar[str]           = "Roland S-7xx Patch"
+    _children:              Optional[List[Element]] = None
 
-
-    def __post_init__(self):
-        self._partial_entries = None
+    type_id:                ClassVar[ElementTypes]  = ElementTypes.DirectoryEntry
+    type_name:              ClassVar[str]           = "Roland S-7xx Patch"
 
 
     @property
@@ -266,35 +268,36 @@ class PatchEntry(PatchParamEntryCommon, Traversable):
     
 
     @property
-    def partial_entries(self) -> Dict[str,PartialEntry]:
-        if not self._partial_entries:
-            self._partial_entries = self._f_partial_entries()
-        return self._partial_entries
+    def partial_entries(self) -> List[PartialEntry]:
+        result = self.children
+        return result  # type: ignore
 
 
-    @property
-    def children(self):
-        result = list(self.partial_entries.values())
-        return result
+class PatchEntryAdapter(ElementAdapter):
 
 
-class PatchEntryAdapter(Adapter):
-
-
-    def _decode(self, obj, context, path) -> PatchEntry:
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+        ):
+        del path  # unused
+        
         container = cast(PatchEntryContainer, obj)
 
-        parent: Optional[Element] = None
-        element_path = []
-        if "_" in context.keys():
-            if "parent" in context._.keys():
-                parent = cast(Element, context._.parent)
-                element_path = parent.path
-            if "fat" in context._.keys():
-                context["fat"] = context._.fat
+        parent = child_info.parent
+        parent_path = child_info.parent_path
 
         name = container.directory.name
-        patch_path = element_path + [name]
+        patch_path = parent_path + [name]
+
+        try:
+            fat = context["_"]["fat"]
+            context["fat"] = fat
+        except KeyError as e:
+            pass
 
         common_args = get_common_field_args(
             PatchParamEntryCommon, 
@@ -305,14 +308,13 @@ class PatchEntryAdapter(Adapter):
             **common_args,
             directory_name=container.directory.name,
             parameter_name=container.parameter.name,
-            _f_partial_entries=lambda: None,
+            _f_realize_children=self.wrap_child_realization(
+                container.partial_entries,
+                context
+            ),
             _parent=parent,
-            _path=patch_path
-        )
-        patch._f_partial_entries = wrap_context_parent(
-            container.partial_entries,
-            context,
-            patch
+            _path=patch_path,
+            _routines=child_info.routines
         )
         try:
             dir_version = context["_"]["_dir_version"]

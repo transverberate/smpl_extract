@@ -3,6 +3,7 @@ _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
+from collections import namedtuple
 from construct.core import Adapter
 from construct.core import Array
 from construct.core import ConstructError
@@ -16,14 +17,14 @@ from construct.core import Slicing
 from construct.core import Subconstruct
 from construct.core import Sequence
 from construct.lib.containers import Container
-from enum import IntEnum
+import enum
 from typing import Any
 from typing import Callable
+from typing import cast
 from typing import Dict
-from typing import Generic
+from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import TypeVar
 from typing import Type
 
 from base import Element
@@ -63,22 +64,127 @@ def wrap_context_parent(
     return result
 
 
-T = TypeVar('T', bound=IntEnum)
-class EnumWrapper(Generic[T], Adapter):
+class EnumWrapper(Adapter):
 
 
-    def __init__(self, subcon, mapping: Type[T]):
+    def __init__(self, subcon, mapping: Type[enum.IntEnum]):
         super().__init__(subcon)  # type: ignore
         self.recast = mapping
         self.remap = EnumConstruct(subcon, mapping)
 
 
-    def _decode(self, obj, context, path)->T:
+    def _decode(self, obj, context, path):
         try:
-            result = self.recast(int(self.remap._decode(obj, path, context)))
+            result = self.recast(int(
+                self.remap._decode(obj, path, context)  # type: ignore
+            ))
         except ValueError:
             raise ConstructError from ValueError
         return result
+
+
+ChildInfo = namedtuple("ChildInfo", [
+    "parent",
+    "parent_path", 
+    "next_path", 
+    "routines",
+    "name"
+])
+
+
+def _pull_from_context(context: Dict[str, Any], key: str, default = None):
+    current_context = context
+    for i in range(2):
+        if key in current_context.keys():
+            result = current_context[key]
+            return result
+        if "_" not in current_context.keys():
+            break
+        current_context = current_context["_"]
+    result = default
+    return result
+
+
+def pull_child_info(context: Dict[str, Any], name: Optional[str] = None) -> ChildInfo:
+    parent = None
+    parent_path = []
+    routines = []
+    resultant_path = parent_path
+
+    # name
+    if name is None:
+        name = _pull_from_context(context, "_elem_name", None)
+    # parent
+    parent = _pull_from_context(context, "_elem_parent", None)
+    # parent_path
+    if parent is not None:
+        parent_path = parent.path
+    # resultant_path
+    if name is not None:
+        resultant_path = parent_path + [name]
+    else:
+        resultant_path = parent_path
+    # routines
+    routines = _pull_from_context(context, "_elem_routines", [])
+
+    result = ChildInfo(
+        parent=parent, 
+        parent_path=parent_path, 
+        next_path=resultant_path, 
+        routines=routines,
+        name=name
+    )
+    return result
+
+
+class ElementAdapter(Adapter):
+
+
+    def __init__(self, subcon, name_key: Optional[str] = None) -> None:
+        super().__init__(subcon)  # type: ignore
+        self.name_key = name_key
+
+
+    def wrap_child_realization(
+        self,
+        f_realize: Callable[[], List[Element]],
+        context: Dict[str, Any]
+    ) -> Callable[[Dict[str, Any]], List[Element]]:
+
+
+        def wrapped_realize(context_additions: Dict[str, Any]) -> List[Element]:
+            for key, value in context_additions.items():
+                context[key] = value
+            result_wrapped = f_realize()
+            return result_wrapped
+
+
+        result = wrapped_realize
+        return result
+
+
+    def _decode(self, obj, context, path):
+        name = None
+        if self.name_key is not None and self.name_key in context.keys():
+            name = context[self.name_key]
+        child_info = pull_child_info(context, name)
+        result = self._decode_element(obj, child_info, context, path)
+        return result
+
+
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ):
+        raise NotImplementedError
+
+
+    def _encode(self, obj, context, path):
+        raise NotImplementedError
+
 
 
 class MappingDefault(Mapping):
@@ -229,6 +335,7 @@ class SlicingGeneral(Adapter):
 
 
     def _encode(self, obj, context, path):
+        obj = cast(List, obj)
         slicing, start, stop, step = self._realize(context)
         result = slicing._encode(obj[start:stop:step], context, path)
         return result
@@ -264,7 +371,7 @@ class SafeListConstruct(Array):
                 continue
             if predicate(obj):
                 obj[i] = (entry)
-        return obj
+        return list(obj.values())
 
 
 class UnsizedConstruct(Subconstruct):

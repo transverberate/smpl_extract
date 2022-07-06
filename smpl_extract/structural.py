@@ -5,10 +5,12 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 from abc import ABCMeta
 from abc import abstractmethod
 import re
+from typing import Any
 from typing import Callable
 from typing import cast
 from typing import ClassVar
 from typing import Dict
+from typing import Generic
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -31,7 +33,8 @@ class ErrorInvalidName(Exception): ...
 class CouldNotDetermineName(Exception): ...
 
 
-_T_ROUTINE = Callable[[List[Element]],List[Element]]
+T_ROUTINE = Callable[[List[Element]], List[Element]]
+T_SAMPLE_ROUTINE = Callable[[List[Sample]],List[Sample]]
 
 
 class SampleElement(LeafElement, metaclass=ABCMeta):
@@ -51,7 +54,7 @@ class ExportManager:
             output_directory: str = "",
             routines: Optional[Dict[
                 str, 
-                Callable[[List[Sample]],List[Sample]]
+                T_SAMPLE_ROUTINE
             ]] = None
         ) -> None:
         self.output_directory: str
@@ -103,22 +106,43 @@ class ExportManager:
         return 
 
 
-class Traversable(Element):
+_T_CHILD = TypeVar("_T_CHILD", bound=Element)
+class Traversable(Element, Generic[_T_CHILD]):
 
-    children: List[Element]
     type_id = ElementTypes.DirectoryEntry    
 
 
     def __init__(
             self,
-            type_name: Optional[str] = None,
+            f_realize_children: Callable[
+                [Dict[str, Any]], 
+                List[_T_CHILD]
+            ],
+            routines: Optional[Dict[str, T_ROUTINE]] = None,
             path: Optional[List[str]] = None, 
-            parent: Optional[Element] = None
+            parent: Optional[Element] = None,
+            type_name: Optional[str] = None,
     ) -> None:
+        super().__init__(path, parent)
         if type_name:
             self.type_name = type_name
-        self.children = list()
-        super().__init__(path, parent)
+        self._f_realize_children = f_realize_children
+        self._routines: Dict[str, T_ROUTINE] = routines or {}
+        self._children = None
+
+
+    @property
+    def children(self) -> List[_T_CHILD]:
+        if self._children is None:
+            context_additions = {
+                "_elem_parent": self,
+                "_elem_routines": self._routines
+            }
+            children = self._f_realize_children(context_additions)
+            for routine in self._routines.values():
+                children = routine(children)  # type: ignore
+            self._children = children
+        return self._children  # type: ignore
 
 
     def get_info(self) -> Printable:
@@ -134,6 +158,10 @@ class Traversable(Element):
         )
         return result
 
+    
+    def set_routines(self, routines: Dict[str, T_ROUTINE]):
+        self._routines = routines
+
 
     def _sanitize_string(self, input_str: str):
         result = input_str.strip()
@@ -143,13 +171,8 @@ class Traversable(Element):
     _TOKENIZE_PATH_REGEX = re.compile(r"(\\{1,2}|\/)")
     def parse_path(
             self, 
-            path, 
-            routines: Optional[Dict[str, _T_ROUTINE]] = None
+            path
     ) -> Element:
-
-        f_make_safe_names = lambda x: x
-        if routines is not None:
-            f_make_safe_names = routines.get("make_safe_names", lambda x: x)
 
         tokens_raw = self._TOKENIZE_PATH_REGEX.split(path.strip())
         tokens_raw_iter = iter(tokens_raw)
@@ -175,7 +198,6 @@ class Traversable(Element):
                 if isinstance(current_node, Traversable):
                     current_node = cast(Traversable, current_node)
                     children = current_node.children
-                    children = f_make_safe_names(children)
 
                     child = next((
                         x for x in children 
@@ -195,23 +217,16 @@ class Traversable(Element):
 
         if isinstance(current_node, Traversable):
             children = current_node.children
-            children = f_make_safe_names(children)
 
         return current_node
 
     
     def export_samples(
             self, 
-            export_manager: ExportManager,
-            routines: Optional[Dict[str, _T_ROUTINE]] = None
+            export_manager: ExportManager
     ):
-        
-        routines = routines or {}
         export_manager.set_level(tuple(self.path))
-        children = self.children         
-        # apply routines
-        for f_routine in routines.values():
-            children = f_routine(children)
+        children = self.children
 
         for child in children:
             if child.type_id == ElementTypes.SampleEntry:
@@ -219,7 +234,7 @@ class Traversable(Element):
                 sample = child.to_generalized()
                 export_manager.add_sample(sample)
             elif isinstance(child, Traversable):
-                child.export_samples(export_manager, routines)
+                child.export_samples(export_manager)
         
         export_manager.finish_level()
         return

@@ -1,4 +1,3 @@
-from io import SEEK_SET, IOBase
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
@@ -16,10 +15,17 @@ from construct.core import PaddedString
 from construct.core import Padding
 from construct.core import Seek
 from construct.core import Struct
-from typing import ClassVar, Dict, List
+from io import SEEK_SET
+from io import IOBase
+from typing import Any
+from typing import Callable
+from typing import ClassVar
+from typing import Dict
+from typing import List
 from typing import Match
 from typing import cast
 
+from base import Element
 from base import ElementTypes
 from .data_types import FAT_AREA_OFFSET
 from .data_types import ID_AREA_SIZE
@@ -27,6 +33,9 @@ from .fat import FatArea
 from .fat import FatAreaParser
 from .fat import RolandFileAllocationTable
 from structural import Image
+from structural import T_ROUTINE
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
 from .volume_entry import VolumeEntry
 from .volume_entry import VolumeEntriesList
 
@@ -169,7 +178,7 @@ class RolandS7xxImageContainer:
     id_area: IdArea
     fat_area: FatArea
     fat: RolandFileAllocationTable
-    volumes: Dict[int, VolumeEntry]
+    volumes: List[VolumeEntry]
 
 
 @dataclass
@@ -187,24 +196,38 @@ class RolandS7xxImage(Image):
     num_patches: int
     num_partials: int
     num_samples: int
-    volumes: Dict[int, VolumeEntry]
+    volumes: List[VolumeEntry]
     fat: RolandFileAllocationTable
+
+    _f_realize_children: Callable[[Dict[str, Any]], Element]
 
     name: ClassVar = "Roland S-7xx Image"
     type_name: ClassVar = "Roland S-7xx Image"
     type_id: ClassVar = ElementTypes.DirectoryEntry
 
 
-    @property
-    def children(self):
-        result = list(self.volumes.values())
-        return result
+    def set_routines(self, routines: Dict[str, T_ROUTINE]):
+        super().set_routines(routines)
+        for volume in self.volumes:
+            volume.set_routines(self._routines)
+
+    
+    def __post_init__(self):
+        self._children = None
     
 
-class RolandS7xxImageAdapter(Adapter):
+class RolandS7xxImageAdapter(ElementAdapter):
     
 
-    def _decode(self, obj, context, path):
+    def _decode_element(
+            self, 
+            obj, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ):
+        del child_info, path
+
         container = cast(RolandS7xxImageContainer, obj)
         result = RolandS7xxImage(
             container.id_area.revision,
@@ -219,7 +242,11 @@ class RolandS7xxImageAdapter(Adapter):
             container.id_area.num_partials,
             container.id_area.num_samples,
             container.volumes,
-            container.fat
+            container.fat,
+            _f_realize_children=self.wrap_child_realization(  # type: ignore
+                lambda: container.volumes,  # type: ignore
+                context
+            )
         )
         return result
 

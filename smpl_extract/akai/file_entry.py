@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from io import SEEK_CUR
 from io import SEEK_END
 from io import SEEK_SET
-from typing import Callable, Optional, cast
+from typing import Callable
 from typing import Iterable
 from typing import List
 from typing import Union
@@ -32,6 +32,7 @@ from .file import FileConstruct
 from util.fat import RequestedInvalidSector
 from util.stream import StreamWrapper
 from util.constructs import EnumWrapper
+from util.constructs import pull_child_info
 
 
 class InvalidFileEntry(Exception):
@@ -104,10 +105,10 @@ class FileEntriesAdapter(Subconstruct):
             result = (end_flag == FILE_TABLE_END_FLAG)
             return result
 
+        
+        child_info = pull_child_info(context)
+        parent = child_info.parent
         sat = self.sat(context) if callable(self.sat) else self.sat
-        parent: Optional[Element] = None
-        if "_" in context.keys() and "parent" in context._.keys():
-            parent = cast(Element, context._.parent)
 
         # read file entries containers
         stream.seek(0, SEEK_END)
@@ -135,9 +136,10 @@ class FileEntriesAdapter(Subconstruct):
                     )).parse_stream(
                         file_entry_container.file_stream,  # type: ignore
                         _=context,
-                        type=file_entry_container.file_type,
-                        name=name,
-                        parent=parent
+                        file_type=file_entry_container.file_type,
+                        _elem_name=name,
+                        _elem_parent=parent,
+                        _elem_routines=child_info.routines
                     )
 
                 if file_content is None:

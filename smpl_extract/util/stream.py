@@ -1,3 +1,8 @@
+import os, sys
+_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
 from construct.core import Construct
 from io import IOBase
 from io import SEEK_CUR
@@ -204,6 +209,30 @@ class StreamSizeConstruct(Construct):
 
         def _sizeof(self, context, path):
             return 0
+
+
+@_singleton
+class CurrentStreamConstruct(Construct):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.flagbuildnone = True
+
+
+    def _parse(self, stream, context, path):
+        del path, context  # Unused
+        result = stream
+        return result
+
+
+    def _build(self, obj, stream, context, path):
+        del obj  # Unused
+        result = self._parse(stream, context, path)
+        return result
+
+
+    def _sizeof(self, context, path):
+        return 0
 
 
 class SubStreamConstruct(Construct):

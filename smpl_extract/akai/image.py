@@ -6,7 +6,7 @@ from construct.core import ConstructError
 from io import IOBase
 from io import SEEK_END
 from io import SEEK_SET
-from typing import List
+from typing import List, cast
 
 from base import ElementTypes
 from .partition import InvalidPartition
@@ -38,19 +38,24 @@ class AkaiImageParser(Image):
 
     def _load_partitions(self):
         partition_cnt = 0
+        partitions = []
         while self.file.tell() < self.file_size:
             name = chr(ord("A") + partition_cnt)
             try:
                 partition = PartitionParser.parse_stream(
                     self.file,  # type: ignore
-                    name=name,
-                    parent=self
+                    _elem_name=name,
+                    _elem_parent=self,
+                    _elem_routines=self._routines
                 )  
             except (InvalidPartition, ConstructError) as e:
                 break
-            self._partitions.append(partition)
+            partitions.append(partition)
             partition_cnt += 1
 
+        for routine in self._routines.values():
+            partitions = routine(partitions)
+        self._partitions = cast(List[Partition], partitions)
         self._partitions_loaded_flag = True
 
     

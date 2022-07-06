@@ -16,7 +16,12 @@ from dataclasses import dataclass
 from dataclasses import field
 from io import  IOBase
 import math
-from typing import ClassVar, Container, List, Optional
+from typing import Any
+from typing import ClassVar
+from typing import Container
+from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Iterable
 
@@ -35,9 +40,11 @@ from generalized.sample import LoopRegion
 from generalized.sample import Sample
 from midi import MidiNote
 from structural import SampleElement
+from util.constructs import ChildInfo
+from util.constructs import ElementAdapter
+from util.constructs import EnumWrapper
 from util.stream import StreamOffset
 from util.stream import SubStreamConstruct
-from util.constructs import EnumWrapper
 
 
 @dataclass
@@ -212,22 +219,22 @@ class SampleHeaderContainer(Container):
     data_stream:        IOBase
 
 
-class SampleAdapter(Adapter):
+class SampleAdapter(ElementAdapter):
 
 
-    def _decode(self, obj: SampleHeaderContainer, context, path)->AkaiSample:
-        del path  # Unused
+    def _decode_element(
+            self, 
+            obj: SampleHeaderContainer, 
+            child_info: ChildInfo, 
+            context: Dict[str, Any], 
+            path: str
+    ):
+        del context, path  # Unused
 
         sample_header = obj
-        file_name = context.get("name", sample_header.sample_name)
-        if "parent" in context.keys():
-            parent = context.parent
-            element_path = parent.path
-        else:
-            parent = None
-            element_path = []
-
-        sample_path = element_path + [file_name]
+        file_name = child_info.name
+        parent = child_info.parent
+        sample_path = child_info.next_path
         
         loop_entries = []
         if sample_header.loop_type != AkaiLoopType.LOOP_INACTIVE:
