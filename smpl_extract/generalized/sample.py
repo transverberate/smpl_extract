@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import fields
 import enum
-from io import IOBase
 from typing import ClassVar
 from typing import Dict
 from typing import List
@@ -17,7 +16,7 @@ from typing import Tuple
 
 from base import Element
 from base import ElementTypes
-from data_streams import StreamEncoding
+from data_streams import DataStream
 from elements import LeafElement
 from midi import MidiNote
 
@@ -55,11 +54,10 @@ class LoopRegion:
 class Sample(LeafElement):
     name:               str = ""
     channel_config:     ChannelConfig = ChannelConfig.MONO
-    stream_encoding:    StreamEncoding = StreamEncoding()
     sample_rate:        int = 44100
     num_channels:       int = 1
     num_audio_samples:  Optional[int] =  None
-    data_streams:       List[IOBase] = field(default_factory=list)
+    data_streams:       List[DataStream] = field(default_factory=list)
     loop_regions:       List[LoopRegion] = field(default_factory=list)
     midi_note:          Optional[MidiNote] = None
     pitch_offset_semi:  Optional[int] = None

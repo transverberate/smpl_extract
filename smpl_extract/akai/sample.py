@@ -28,6 +28,7 @@ from typing import Iterable
 from .akai_string import AkaiPaddedString
 from base import Element
 from base import ElementTypes
+from data_streams import DataStream
 from data_streams import Endianess
 from data_streams import StreamEncoding
 from .data_types import AKAI_SAMPLE_WORDLENGTH
@@ -114,11 +115,12 @@ class AkaiSample(SampleElement):
             sample_width=self.bytes_per_sample,
             num_interleaved_channels=0
         )
-        data_streams = [self._data_stream]
+        data_streams = [
+            DataStream(stream=self._data_stream, encoding=stream_encoding)
+        ]
         result = Sample(
             name=self.name,
             channel_config=ChannelConfig.MONO,
-            stream_encoding=stream_encoding,
             sample_rate=self.sample_rate,
             num_channels=1,
             midi_note=self.note_pitch,

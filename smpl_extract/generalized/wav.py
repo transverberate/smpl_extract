@@ -4,12 +4,14 @@ sys.path.append(os.path.join(_SCRIPT_PATH, "."))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 from construct import Adapter
-from construct import Container 
-from io import IOBase
+from construct import Container
 import numpy as np
 from typing import List
 from typing import  Tuple
 
+from data_streams import DataStream
+from data_streams import Endianess
+from data_streams import StreamEncoding
 from formats.wav import RiffStruct
 from formats.wav import SmpteFormat
 from formats.wav import WavFormatChunkContainer
@@ -28,12 +30,12 @@ class UnexpectedNumberOfChannels(Exception): ...
 class NoDataStream(Exception): ...
 
 
-def get_fmt_chunk_data(sample: Sample) -> WavFormatChunkContainer:
+def get_fmt_chunk_data(sample: Sample, encoding: StreamEncoding) -> WavFormatChunkContainer:
     result = WavFormatChunkContainer(
         audio_format=1,
-        channel_cnt=sample.num_channels,
+        channel_cnt=encoding.num_interleaved_channels,
         sample_rate=sample.sample_rate,
-        bits_per_sample=8*sample.stream_encoding.sample_width,
+        bits_per_sample=8*encoding.sample_width
     )
     return result
 
@@ -116,16 +118,17 @@ def get_smpl_chunk_data(sample: Sample) -> WavSampleChunkContainer:
 
 
 _BUFFER_SIZE = 0x1000
-def sample_frame_gen_simple(data_stream: IOBase):
+def sample_frame_gen_simple(data_stream: DataStream):
+    stream = data_stream.stream
     while True:
-        buffer = data_stream.read(_BUFFER_SIZE)
+        buffer = stream.read(_BUFFER_SIZE)
         if len(buffer) < 1:
             break
         yield buffer
 
 
 def sample_frame_gen_interleaved(
-        data_streams: List[IOBase]
+        data_streams: List[DataStream]
 ):
 
     if 2 > len(data_streams) < 0:
@@ -140,7 +143,7 @@ def sample_frame_gen_interleaved(
             if data_stream is None:
                 continue
             try:
-                buffer[i] = data_stream.read(_BUFFER_SIZE)
+                buffer[i] = data_stream.stream.read(_BUFFER_SIZE)
             except SectorReadError:
                 # TODO: Create more robust handling for this
                 continue_flag = False
@@ -176,12 +179,21 @@ class WavSampleAdapter(Adapter):
         del path  # Unused
         sample = obj
 
+        if len(sample.data_streams) < 1:
+            raise NoDataStream("Sample has no data stream")
+
+        dest_encoding = StreamEncoding(
+            endianess=Endianess.LITTLE,  # WAV Specification
+            sample_width=sample.data_streams[0].encoding.sample_width,
+            num_interleaved_channels=sample.num_channels
+        )
+
         riff_chunks = []
 
         # fmt chunk
         riff_chunks.append(Container({
             "riff_id":  WavRiffChunkType.FMT,
-            "data":     get_fmt_chunk_data(sample)
+            "data":     get_fmt_chunk_data(sample, dest_encoding)
         }))
 
         # smpl chunk
@@ -198,8 +210,6 @@ class WavSampleAdapter(Adapter):
             }))
 
         # data chunk
-        if len(sample.data_streams) < 1:
-            raise NoDataStream("Sample has no data stream")
 
         if sample.channel_config == ChannelConfig.STEREO_SPLIT_STREAMS:
             data_gen = sample_frame_gen_interleaved(sample.data_streams)

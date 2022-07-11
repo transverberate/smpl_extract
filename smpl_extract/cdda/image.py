@@ -14,6 +14,7 @@ from typing import Optional
 
 from base import Element
 from cuesheet import CueSheetFile
+from data_streams import DataStream
 from data_streams import Endianess
 from data_streams import StreamEncoding
 from generalized.sample import ChannelConfig
@@ -55,11 +56,12 @@ class AudioTrack(SampleElement):
             sample_width=self.bytes_per_sample, 
             num_interleaved_channels=2
         )
-        data_streams = [self._data_stream]
+        data_streams = [
+            DataStream(stream=self._data_stream, encoding=stream_encoding)
+        ]
         result = Sample(
             name=self.name,
             channel_config=ChannelConfig.STEREO_SINGLE_STREAM,
-            stream_encoding=stream_encoding,
             sample_rate=self.sample_rate,
             num_channels=2,
             num_audio_samples=self.num_audio_samples,

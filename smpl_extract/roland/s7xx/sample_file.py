@@ -17,6 +17,7 @@ from typing import NamedTuple
 from typing import Optional
 
 from base import Element
+from data_streams import DataStream
 from data_streams import Endianess
 from data_streams import StreamEncoding
 from .data_types import RolandLoopMode
@@ -300,11 +301,12 @@ class SampleFile(
             sample_width=self.bytes_per_sample, 
             num_interleaved_channels=0
         )
-        data_streams = [data_stream]
+        data_streams = [
+            DataStream(stream=data_stream, encoding=stream_encoding)
+        ]
         result = Sample(
             name=self.name,
             channel_config=ChannelConfig.MONO,
-            stream_encoding=stream_encoding,
             sample_rate=self.sampling_frequency,
             num_channels=1,
             midi_note=self.original_key,

@@ -1,3 +1,4 @@
+from io import IOBase
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
@@ -16,4 +17,10 @@ class StreamEncoding:
     endianess:                  Endianess = Endianess.LITTLE
     sample_width:               int = 1
     num_interleaved_channels:   int = 0  # less than 2 -> unused
+
+
+@dataclass
+class DataStream:
+    stream:     IOBase
+    encoding:   StreamEncoding = StreamEncoding()
 
