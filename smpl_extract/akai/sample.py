@@ -25,9 +25,11 @@ from typing import Optional
 from typing import Sequence
 from typing import Iterable
 
+from .akai_string import AkaiPaddedString
 from base import Element
 from base import ElementTypes
-from .akai_string import AkaiPaddedString
+from data_streams import Endianess
+from data_streams import StreamEncoding
 from .data_types import AKAI_SAMPLE_WORDLENGTH
 from .data_types import DEFAULT_SAMPLE_RATE
 from .data_types import AkaiLoopType
@@ -35,7 +37,6 @@ from .data_types import AkaiMidiNote
 from .data_types import AkaiTuneCents
 from .data_types import SampleType
 from generalized.sample import ChannelConfig
-from generalized.sample import Endianness
 from generalized.sample import LoopRegion
 from generalized.sample import Sample
 from midi import MidiNote
@@ -108,13 +109,17 @@ class AkaiSample(SampleElement):
                     duration=loop.loop_duration
                 ))
 
+        stream_encoding = StreamEncoding(
+            endianess=Endianess.LITTLE,
+            sample_width=self.bytes_per_sample,
+            num_interleaved_channels=0
+        )
         data_streams = [self._data_stream]
         result = Sample(
             name=self.name,
             channel_config=ChannelConfig.MONO,
-            endianness=Endianness.LITTLE,
+            stream_encoding=stream_encoding,
             sample_rate=self.sample_rate,
-            bytes_per_sample=self.bytes_per_sample,
             num_channels=1,
             midi_note=self.note_pitch,
             pitch_offset_semi=self.pitch_semi,

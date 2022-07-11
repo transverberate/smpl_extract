@@ -33,7 +33,7 @@ def get_fmt_chunk_data(sample: Sample) -> WavFormatChunkContainer:
         audio_format=1,
         channel_cnt=sample.num_channels,
         sample_rate=sample.sample_rate,
-        bits_per_sample=8*sample.bytes_per_sample,
+        bits_per_sample=8*sample.stream_encoding.sample_width,
     )
     return result
 

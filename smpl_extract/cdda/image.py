@@ -1,6 +1,7 @@
 import os, sys
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, "."))
+sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 from dataclasses import dataclass
 from dataclasses import field
@@ -11,10 +12,11 @@ from typing import ClassVar
 from typing import List
 from typing import Optional
 
-from smpl_extract.base import Element
+from base import Element
 from cuesheet import CueSheetFile
+from data_streams import Endianess
+from data_streams import StreamEncoding
 from generalized.sample import ChannelConfig
-from generalized.sample import Endianness
 from generalized.sample import Sample
 from structural import Image
 from structural import SampleElement
@@ -48,13 +50,17 @@ class AudioTrack(SampleElement):
 
 
     def to_generalized(self) -> Sample:
+        stream_encoding = StreamEncoding(
+            endianess=Endianess.LITTLE, 
+            sample_width=self.bytes_per_sample, 
+            num_interleaved_channels=2
+        )
         data_streams = [self._data_stream]
         result = Sample(
             name=self.name,
             channel_config=ChannelConfig.STEREO_SINGLE_STREAM,
-            endianness=Endianness.LITTLE,
+            stream_encoding=stream_encoding,
             sample_rate=self.sample_rate,
-            bytes_per_sample=self.bytes_per_sample,
             num_channels=2,
             num_audio_samples=self.num_audio_samples,
             data_streams=data_streams,

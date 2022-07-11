@@ -17,10 +17,11 @@ from typing import NamedTuple
 from typing import Optional
 
 from base import Element
+from data_streams import Endianess
+from data_streams import StreamEncoding
 from .data_types import RolandLoopMode
 from .data_types import ROLAND_SAMPLE_WIDTH
 from generalized.sample import ChannelConfig
-from generalized.sample import Endianness
 from generalized.sample import LoopRegion
 from generalized.sample import LoopType
 from generalized.sample import Sample
@@ -294,13 +295,17 @@ class SampleFile(
             points
         )
 
+        stream_encoding = StreamEncoding(
+            endianess=Endianess.LITTLE, 
+            sample_width=self.bytes_per_sample, 
+            num_interleaved_channels=0
+        )
         data_streams = [data_stream]
         result = Sample(
             name=self.name,
             channel_config=ChannelConfig.MONO,
-            endianness=Endianness.LITTLE,
+            stream_encoding=stream_encoding,
             sample_rate=self.sampling_frequency,
-            bytes_per_sample=self.bytes_per_sample,
             num_channels=1,
             midi_note=self.original_key,
             pitch_offset_semi=0,

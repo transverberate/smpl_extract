@@ -17,6 +17,7 @@ from typing import Tuple
 
 from base import Element
 from base import ElementTypes
+from data_streams import StreamEncoding
 from elements import LeafElement
 from midi import MidiNote
 
@@ -25,11 +26,6 @@ class ChannelConfig(enum.IntEnum):
     MONO = enum.auto()
     STEREO_SINGLE_STREAM = enum.auto()
     STEREO_SPLIT_STREAMS = enum.auto()
-
-
-class Endianness(enum.IntEnum):
-    LITTLE  = enum.auto()
-    BIG     = enum.auto()
 
 
 class Inclusivity(enum.IntEnum):
@@ -59,9 +55,8 @@ class LoopRegion:
 class Sample(LeafElement):
     name:               str = ""
     channel_config:     ChannelConfig = ChannelConfig.MONO
-    endianness:         Endianness = Endianness.LITTLE
+    stream_encoding:    StreamEncoding = StreamEncoding()
     sample_rate:        int = 44100
-    bytes_per_sample:   int = 2
     num_channels:       int = 1
     num_audio_samples:  Optional[int] =  None
     data_streams:       List[IOBase] = field(default_factory=list)
