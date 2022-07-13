@@ -299,7 +299,7 @@ class SampleFile(
         stream_encoding = StreamEncoding(
             endianess=Endianess.LITTLE, 
             sample_width=self.bytes_per_sample, 
-            num_interleaved_channels=0
+            num_interleaved_channels=1
         )
         data_streams = [
             DataStream(stream=data_stream, encoding=stream_encoding)

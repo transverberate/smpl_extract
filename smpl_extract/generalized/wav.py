@@ -5,12 +5,10 @@ sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 from construct import Adapter
 from construct import Container
-import numpy as np
-from typing import List
 from typing import  Tuple
 
-from data_streams import DataStream
 from data_streams import Endianess
+from data_streams import NoDataStream
 from data_streams import StreamEncoding
 from formats.wav import RiffStruct
 from formats.wav import SmpteFormat
@@ -19,15 +17,10 @@ from formats.wav import WavLoopContainer
 from formats.wav import WavLoopType
 from formats.wav import WavRiffChunkType
 from formats.wav import WavSampleChunkContainer
-from generalized.sample import ChannelConfig
 from generalized.sample import LoopType
 from generalized.sample import Sample
 from midi import MidiNote
-from util.stream import SectorReadError
-
-
-class UnexpectedNumberOfChannels(Exception): ...
-class NoDataStream(Exception): ...
+from transcoder import make_transcoder
 
 
 def get_fmt_chunk_data(sample: Sample, encoding: StreamEncoding) -> WavFormatChunkContainer:
@@ -117,66 +110,10 @@ def get_smpl_chunk_data(sample: Sample) -> WavSampleChunkContainer:
     return smpl_header
 
 
-_BUFFER_SIZE = 0x1000
-def sample_frame_gen_simple(data_stream: DataStream):
-    stream = data_stream.stream
-    while True:
-        buffer = stream.read(_BUFFER_SIZE)
-        if len(buffer) < 1:
-            break
-        yield buffer
-
-
-def sample_frame_gen_interleaved(
-        data_streams: List[DataStream]
-):
-
-    if 2 > len(data_streams) < 0:
-        raise UnexpectedNumberOfChannels(
-            f"{len(data_streams)} channels not supported"
-        )  
-
-    buffer = [bytes()]*len(data_streams)
-    continue_flag = True
-    while continue_flag:
-        for i, data_stream in enumerate(data_streams):
-            if data_stream is None:
-                continue
-            try:
-                buffer[i] = data_stream.stream.read(_BUFFER_SIZE)
-            except SectorReadError:
-                # TODO: Create more robust handling for this
-                continue_flag = False
-                break
-            if len(buffer[i]) < 1:
-                continue_flag = False
-                break
-        if continue_flag:
-            if len(buffer) == 1:
-                yield buffer[0]
-            else:
-                left    = np.frombuffer(buffer[0], "int16")
-                right   = np.frombuffer(buffer[1], "int16")
-
-                if len(left) < len(right):
-                    N = len(right) - len(left)
-                    left = np.pad(left, (0, N), "linear_ramp", end_values=(0, 0))
-                elif len(right) < len(left):
-                    N = len(left) - len(right)
-                    right = np.pad(right, (0, N), "linear_ramp", end_values=(0, 0))
-
-                comb = np.vstack(( 
-                    left, 
-                    right
-                )).reshape((-1,),order='F').tobytes()
-                yield comb
-    return
-
-
 class WavSampleAdapter(Adapter):
     
     def _encode(self, obj: Sample, context, path) -> Container:
-        del path  # Unused
+        del context, path  # Unused
         sample = obj
 
         if len(sample.data_streams) < 1:
@@ -210,15 +147,10 @@ class WavSampleAdapter(Adapter):
             }))
 
         # data chunk
-
-        if sample.channel_config == ChannelConfig.STEREO_SPLIT_STREAMS:
-            data_gen = sample_frame_gen_interleaved(sample.data_streams)
-        else:
-            data_gen = sample_frame_gen_simple(sample.data_streams[0])
-
+        data_generator = make_transcoder(sample.data_streams, dest_encoding)
         riff_chunks.append(Container({
             "riff_id":  WavRiffChunkType.DATA,
-            "data":     data_gen
+            "data":     data_generator
         }))
 
         result = Container({
