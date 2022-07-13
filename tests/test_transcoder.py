@@ -1,11 +1,12 @@
 import os, sys
-from typing import List, Union
-from unittest.mock import patch
 _SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
 
 from io import BytesIO
+from typing import Iterable
+from typing import Union
 import unittest
+from unittest.mock import patch
 
 from smpl_extract.data_streams import DataStream
 from smpl_extract.data_streams import Endianess
@@ -287,6 +288,50 @@ class TranscoderTest(unittest.TestCase):
         dest_encoding = StreamEncoding(sample_width=2, num_interleaved_channels=2)
         result = make_transcoder([stream_1, stream_2], dest_encoding=dest_encoding)
         self.assertIsInstance(result, PipelineTranscoder)
+
+    
+    # Stream sizing issues
+    def transcode_full(self, transcoder: Iterable[bytes]):
+        result = b""
+        for x in transcoder:
+            result += x
+        return result
+
+
+    def test_simple_stream_sizing_issue_does_not_raise_exception(self):
+        byte_buffer = b"".join([b"\x00"] * 0x5)
+        stream = DataStream(
+            BytesIO(byte_buffer),
+            StreamEncoding(sample_width=2)
+        )
+        transcoder = make_transcoder(
+            [stream], 
+            StreamEncoding(sample_width=2)
+        )
+        result = self.transcode_full(transcoder)
+        self.assertTrue(len(result) == 4)
+
+
+    def test_pipeline_stream_sizing_issue_does_not_raise_exception(self):
+        byte_buffer_1 = b"".join([b"\x00"] * 0x5)
+        stream_1 = DataStream(
+            BytesIO(byte_buffer_1),
+            StreamEncoding(sample_width=2)
+        )
+        byte_buffer_2 = b"".join([b"\x01\x00"] * 0x2 + [b"\x00"])
+        stream_2 = DataStream(
+            BytesIO(byte_buffer_2),
+            StreamEncoding(sample_width=2)
+        )
+        transcoder = make_transcoder(
+            [stream_1, stream_2], 
+            StreamEncoding(
+                sample_width=2,
+                num_interleaved_channels=2
+            )
+        )
+        result = self.transcode_full(transcoder)
+        self.assertTrue(len(result) == 2*4)
 
 
     # Pipeline byteswaps

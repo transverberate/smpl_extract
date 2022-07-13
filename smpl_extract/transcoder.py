@@ -34,6 +34,14 @@ def get_buffer_sizes(streams: List[DataStream]) -> List[int]:
     return buffer_sizes
 
 
+def resize_buffer(buffer: bytes, frame_size: int) -> bytes:
+    if len(buffer) % frame_size != 0:
+        num_frames = len(buffer) // frame_size
+        true_size = num_frames * frame_size
+        buffer = buffer[:true_size]
+    return buffer
+
+
 def pad_channels(channels: List[np.ndarray]) -> List[np.ndarray]:
     target_size = max(map(len, channels))
     result_channels = []
@@ -64,6 +72,7 @@ def decode_frame(
         dtype = stream.encoding.dtype
         num_channels = max(1, stream.encoding.num_interleaved_channels)
         buffer = stream.stream.read(size)
+        buffer = resize_buffer(buffer, stream.frame_size)
 
         if buffer is None or len(buffer) <= 0:
             for i in range(num_channels):
@@ -108,8 +117,8 @@ def swap_endianess_multi(
 
 @dataclass
 class PassthroughTranscoder:
-    data_stream: DataStream 
-    buffer_size: int = _DEFAULT_BUFFER_SIZE
+    data_stream:    DataStream
+    buffer_size:    int = _DEFAULT_BUFFER_SIZE
 
 
     def __iter__(self):
@@ -122,8 +131,13 @@ class PassthroughTranscoder:
             buffer = stream.read(self.buffer_size)
         except SectorReadError as e:
             raise StopIteration
+
+        frame_size = self.data_stream.frame_size
+        buffer = resize_buffer(buffer, frame_size)
+
         if len(buffer) <= 0:
             raise StopIteration
+
         return buffer
 
 
@@ -188,7 +202,7 @@ def make_transcoder(
     if len(data_streams) == 1 \
             and data_streams[0].encoding == dest_encoding:
         result = PassthroughTranscoder(
-            data_streams[0], 
+            data_streams[0],
             buffer_size=buffer_sizes[0]
         )
         return result

@@ -85,9 +85,7 @@ class DataStream:
     encoding:   StreamEncoding = StreamEncoding()
 
 
-    @property
-    def frame_size(self) -> int:
+    def __post_init__(self):
         enc = self.encoding
-        result = enc.num_interleaved_channels * enc.sample_width
-        return result
+        self.frame_size = enc.num_interleaved_channels * enc.sample_width
 
