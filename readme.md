@@ -44,8 +44,16 @@ Enter the command,
 python -m pip install cython
 ```
 
-to install the [Cython](https://cython.org/) to your python package library. 
-This is needed to compile the [numpy](https://numpy.org/) library that this library/tool makes use of.
+to install Cython to your python package library. 
+
+[Cython](https://cython.org/) is needed to compile the (cpu intensive) filtering algorithms (see `smpl_extract/filters/*.pyx`)
+as well as the [numpy](https://numpy.org/) library used by this tool.
+
+Cython (and other `setuptools` extensions) requires a `c compiler`.
+This is *usually* not an issue, but you may be prompted to download one
+if none are found on your system.
+The [GNU Compiler Collection (GCC)](https://gcc.gnu.org/) is generally a good choice for an 
+out-of-the-box `c compiler`.
 
 Next, enter the command (note the period!),
 

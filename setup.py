@@ -1,7 +1,19 @@
+from setuptools import Extension
 from setuptools import setup
 
 
-version = "0.1.0"
+version = "0.2.0"
+# cython accelerated filters
+extensions = [
+    Extension(
+        "smpl_extract.filters.fir", 
+        ["smpl_extract/filters/fir.pyx"],
+    ),
+    Extension(
+        "smpl_extract.filters.iir",
+        ["smpl_extract/filters/iir.pyx"],
+    )
+]
 
 
 setup(
@@ -12,6 +24,8 @@ setup(
     author="Counselor Chip",
     install_requires=["future", "numpy"],
     setup_requires=[
+        "setuptools>=18.0",
+        "cython",
         "numpy"
     ],
     classifiers=[
@@ -21,5 +35,6 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
     ],
+    ext_modules=extensions
 )
 

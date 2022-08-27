@@ -5,3 +5,7 @@ env/
 dist/**
 .vscode/
 ignore/
+*.pyd
+smpl_extract/**/*.c
+smpl_extract/**/*.html
+build/

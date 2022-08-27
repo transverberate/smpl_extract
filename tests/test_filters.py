@@ -1,14 +1,21 @@
+import os, sys
+_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
+
 import numpy as np
+import numpy.typing as npt
 from typing import List
 import unittest
 
 from smpl_extract.filters.fir import FirFilter
+from smpl_extract.filters.iir import CircularBufferDouble
 from smpl_extract.filters.iir import IirFilter
 
 
-def make_array(x: List, dtype = np.int32):
+def make_array(x: List, dtype: npt.DTypeLike = np.int32):
     result = np.asarray(x, dtype=dtype)
     return result
+
 
 def arrays_are_equal(a, b):
     if np.size(a) != np.size(b):
@@ -18,7 +25,6 @@ def arrays_are_equal(a, b):
     else:
         result = np.all(a == b)
     return result
-
 
 
 class Filters_Test(unittest.TestCase):
@@ -95,6 +101,98 @@ class Filters_Test(unittest.TestCase):
         y_result = deemph.process(x2)
 
         self.assertTrue(arrays_are_equal(y_expected, y_result))
+
+
+    # -- IIR Filter Circular Buffer ---
+
+    def test_cbuffer_init_is_zeroes(self):
+        expected = make_array([0, 0, 0], dtype=np.float64)
+        cbuff = CircularBufferDouble(size=3)
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+
+
+    def test_cbuffer_init_from_array(self):
+        expected = make_array([4, 5, 6], dtype=np.float64)
+        cbuff = CircularBufferDouble(x=make_array([4, 5, 6], dtype=np.float64))
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+
+
+    def test_cbuffer_init_from_undersized_array(self):
+        expected = make_array([4, 5, 6], dtype=np.float64)
+        cbuff = CircularBufferDouble(
+            size=2, 
+            x=make_array([4, 5, 6], dtype=np.float64)
+        )
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+
+
+    def test_cbuffer_init_from_oversized_array(self):
+        expected = make_array([4, 5, 6, 0], dtype=np.float64)
+        cbuff = CircularBufferDouble(
+            size=4, 
+            x=make_array([4, 5, 6], dtype=np.float64)
+        )
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+        
+
+    def test_cbuffer_push(self):
+        expected = make_array([3, 0, 0], dtype=np.float64)
+        cbuff = CircularBufferDouble(size=3)
+        cbuff.push(3)
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+
+
+    def test_cbuffer_push_moves_current_values(self):
+        expected = make_array([4, 1, 2, 3], dtype=np.float64)
+        cbuff = CircularBufferDouble(
+            size=4,
+            x=make_array([1, 2, 3], dtype=np.float64)
+        )
+        cbuff.push(4)
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+
+
+    def test_cbuffer_push_moves_wrap_around(self):
+        expected = make_array([4, 1, 2], dtype=np.float64)
+        cbuff = CircularBufferDouble(
+            size=3,
+            x=make_array([1, 2, 3], dtype=np.float64) 
+        )
+        cbuff.push(4)
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+
+
+    def test_cbuffer_push_moves_wrap_around_refill(self):
+        expected = make_array([7, 6, 5], dtype=np.float64)
+        cbuff = CircularBufferDouble(
+            size=3,
+            x=make_array([1, 2, 3], dtype=np.float64)
+        )
+        cbuff.push(4)
+        cbuff.push(5)
+        cbuff.push(6)
+        cbuff.push(7)
+        result = cbuff.to_array()
+        self.assertTrue(arrays_are_equal(expected, result))
+
+
+    def test_cbuffer_inner_product(self):
+        expected = 2.0
+        A = make_array([1, 2, -1], dtype=np.float64)
+        cbuff = CircularBufferDouble(
+            size=3,
+            x=make_array([1, 2, 3], dtype=np.float64)
+        )
+        
+        result = cbuff.inner_prod(A)
+        self.assertAlmostEqual(expected, result)
 
 
     # -- IIR Filter ---
@@ -201,4 +299,11 @@ class Filters_Test(unittest.TestCase):
         self.assertTrue(arrays_are_equal(y_expected, y_result))
 
 
-    
+
+if __name__ == "__main__":
+    try:
+        unittest.main()
+    except SystemExit as err:
+        pass
+    pass
+
