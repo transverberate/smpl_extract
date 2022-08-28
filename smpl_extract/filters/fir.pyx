@@ -147,7 +147,6 @@ class ChickSysCustomFirFilter(FirFilter):
         self.k_gain = k_gain
     
 
-    # Would benefit (likely substantially) from Cython or C extension
     def convolve_valid(self, x: np.ndarray, h: np.ndarray) -> np.ndarray:
         x = x.astype(np.int16)
         result = _c_chicken_sys_convolve_valid(x, h, self.k_gain)

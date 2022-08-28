@@ -49,7 +49,6 @@ cdef void push_double_cbuffer(s_double_cbuffer *cbuffer, double a):
         cbuffer.cur_pos -= 1
     
     cbuffer.arr[cbuffer.cur_pos] = a
-    pass
 
 
 # DANGEROUS CALL: 
@@ -199,8 +198,7 @@ class IirFilter:
     def reset_state(
             self, 
             **kwargs
-        ): 
-        pass
+    ): 
         x_prev = kwargs.get("x_prev", None)
         y_prev = kwargs.get("y_prev", None)
         x_prev = x_prev or np.zeros(self.n_x_prev, dtype=np.float64)
