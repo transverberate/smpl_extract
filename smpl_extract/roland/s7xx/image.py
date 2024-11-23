@@ -170,8 +170,9 @@ RolandS7xxImageStruct = Struct(
     "fat" / Computed(lambda this: this.fat_area.fat),
     "_dir_version" / Computed(lambda this: this.fat_area.version),
     "volumes" / VolumeEntriesList(
-        lambda this: this.id_area.num_volumes
-    )
+        lambda this: this.id_area.num_volumes,
+        lambda this: this.id_area.num_performances
+    )  # type: ignore
 )
 @dataclass
 class RolandS7xxImageContainer:
