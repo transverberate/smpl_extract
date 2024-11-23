@@ -96,7 +96,7 @@ class IdAreaAdapter(Adapter):
 
     _S7XX_REGEX = re.compile(r"\s*S7\d\d\s+MR25A", flags=re.I)
     _VERSION_REGEX = re.compile(
-        r"\s*(S-\d+)\s+(\w+)\s+Disk\s+Ver\.?\s*(\d(\.\d+)?\w*)\s*",
+        r"\s*([Ss][A-z]*-\d+)\s+([A-z\s\-]*?Disk)\s?([A-z\s]*?)\s+Ver\.?\s*(\d(\.\d+)?[\w-]*)\s*",
         flags=re.I
     )
     _COPYRIGHT_REGEX = re.compile(r"\s*Copyright\s+Roland", flags=re.I)
@@ -123,7 +123,7 @@ class IdAreaAdapter(Adapter):
 
         model_version = match_results[1].groups()[0]
         disk_type = match_results[1].groups()[1]
-        disk_version = match_results[1].groups()[2]
+        disk_version = match_results[1].groups()[3]
 
         result = IdArea(
             revision=container.revision,
