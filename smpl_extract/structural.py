@@ -308,10 +308,12 @@ class Image(Traversable):
             export_name = match.group(1)
         if len(export_name) <= 0:
             export_name = "0"
-        if is_file:
-            match = re.match(r"\w", export_name)
-            if not match:
-                export_name = "0" + export_name
+        match = re.match(r"\w", export_name)
+        if not match:
+            export_name = "0" + export_name
+        if not is_file:
+            if export_name[-1] in (".", "-"):
+                export_name = export_name + "0"
         return export_name
 
 
