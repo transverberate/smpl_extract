@@ -94,7 +94,7 @@ class VolumeBodyContainer(Container):
 VolumeEntryConstruct = Struct(
     "name" / AkaiPaddedString(12),
     "type_raw" / Int16ul,
-    "type" / EnumWrapper(Computed(this.type_raw & 0xFF), VolumeType),
+    "type" / EnumWrapper(Computed(this.type_raw & 0x03), VolumeType),
     "start" / Int16ul
 ).compile()
 @dataclass
