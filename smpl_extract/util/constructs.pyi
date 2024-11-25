@@ -78,8 +78,9 @@ class ElementAdapter(Adapter):
         ...
 
 
+    @classmethod
     def wrap_child_realization(
-        self,
+        cls,
         f_realize: Callable[[], List[Element]],
         context: Dict[str, Any]
     ) -> Callable[[Dict[str, Any]], List[Element]]:

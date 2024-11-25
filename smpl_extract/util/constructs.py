@@ -145,8 +145,9 @@ class ElementAdapter(Adapter):
         self.name_key = name_key
 
 
+    @classmethod
     def wrap_child_realization(
-        self,
+        cls,
         f_realize: Callable[[], List[Element]],
         context: Dict[str, Any]
     ) -> Callable[[Dict[str, Any]], List[Element]]:
@@ -356,7 +357,7 @@ class SafeListConstruct(Array):
 
     def _parse(self, stream, context, path):
         count = evaluate(self.count, context)
-        if count <= 0:
+        if count < 0:
             raise RangeError(f"invalid count {count}", path=path)
         obj = dict()
         if self.predicate is not None:
