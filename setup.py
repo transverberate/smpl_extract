@@ -22,9 +22,12 @@ setup(
     version=version,
     description="A python library/tool for extracting patches and samples from various sampler/audio disc image formats.",
     author="Counselor Chip",
-    install_requires=["future", "numpy"],
+    install_requires=[
+        "future", 
+        "numpy",
+        "construct"
+    ],
     setup_requires=[
-        "setuptools>=18.0",
         "cython",
         "numpy"
     ],
