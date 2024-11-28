@@ -1,4 +1,5 @@
 from setuptools import Extension
+from setuptools import find_packages
 from setuptools import setup
 
 
@@ -18,7 +19,7 @@ extensions = [
 
 setup(
     name="smpl_extract",
-    packages=["smpl_extract"],
+    packages=find_packages("."),
     version=version,
     description="A python library/tool for extracting patches and samples from various sampler/audio disc image formats.",
     author="Counselor Chip",
@@ -28,8 +29,8 @@ setup(
         "construct"
     ],
     setup_requires=[
+        "setuptools>=18.0",
         "cython",
-        "numpy"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
