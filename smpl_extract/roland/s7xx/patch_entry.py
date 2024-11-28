@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from dataclasses import dataclass
 from dataclasses import field
 from construct.core import Adapter
@@ -26,8 +21,17 @@ from typing import List
 from typing import Optional
 from typing import cast
 
-from base import Element
-from base import ElementTypes
+from smpl_extract.base import Element
+from smpl_extract.base import ElementTypes
+from smpl_extract.structural import T_ROUTINE
+from smpl_extract.structural import Traversable
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.constructs import pass_expression_deeper
+from smpl_extract.util.constructs import SafeListConstruct
+from smpl_extract.util.constructs import UnsizedConstruct
+from smpl_extract.util.dataclass import get_common_field_args
+
 from .data_types import MAX_NUM_PATCH
 from .data_types import NUM_KEYS
 from .data_types import PATCH_DIRECTORY_AREA_OFFSET
@@ -39,14 +43,6 @@ from .directory_area import DirectoryEntryParser
 from .partial_entry import PartialEntry
 from .partial_entry import PartialEntryAdapter
 from .partial_entry import PartialEntryConstruct
-from structural import T_ROUTINE
-from structural import Traversable
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.constructs import pass_expression_deeper
-from util.constructs import SafeListConstruct
-from util.constructs import UnsizedConstruct
-from util.dataclass import get_common_field_args
 
 
 BenderParamStruct = Struct(

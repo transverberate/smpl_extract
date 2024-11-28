@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from dataclasses import dataclass
 from typing import cast
 from typing import Dict
@@ -16,6 +11,10 @@ from construct.core import Int32ul
 from construct.core import Int8ul
 from construct.core import Struct
 
+from smpl_extract.util.constructs import MappingDefault
+from smpl_extract.util.constructs import SafeListConstruct
+from smpl_extract.util.constructs import UnsizedConstruct
+
 from .data_types import MAX_NUM_PARTIAL
 from .data_types import PARTIAL_DIRECTORY_AREA_SIZE
 from .data_types import MAX_NUM_PATCH
@@ -27,9 +26,6 @@ from .data_types import SAMPLE_DIRECTORY_AREA_SIZE
 from .data_types import MAX_NUM_VOLUME
 from .data_types import VOLUME_DIRECTORY_AREA_SIZE
 from .data_types import RolandFileType
-from util.constructs import MappingDefault
-from util.constructs import SafeListConstruct
-from util.constructs import UnsizedConstruct
 
 
 DirectoryEntryStruct = Struct(

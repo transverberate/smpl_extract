@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct.core import Bytes
 from construct.core import Byte
 from construct.core import ConstructError
@@ -13,7 +8,7 @@ from io import IOBase
 from io import SEEK_END
 from io import SEEK_SET
 
-from util.sector import SectorStream
+from smpl_extract.util.sector import SectorStream
 
 
 MDF_SECTOR_SIZE = 2352

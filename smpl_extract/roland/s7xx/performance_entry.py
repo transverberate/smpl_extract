@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from dataclasses import dataclass
 from dataclasses import field
 from construct.core import Adapter
@@ -30,8 +25,16 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from base import Element
-from base import ElementTypes
+from smpl_extract.base import Element
+from smpl_extract.base import ElementTypes
+from smpl_extract.structural import T_ROUTINE
+from smpl_extract.structural import Traversable
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.constructs import pass_expression_deeper
+from smpl_extract.util.constructs import SafeListConstruct
+from smpl_extract.util.constructs import UnsizedConstruct
+from smpl_extract.util.dataclass import get_common_field_args
+
 from .fat import RolandFileAllocationTable
 from .data_types import MAX_NUM_PERFORMANCE
 from .data_types import PERFORMANCE_DIRECTORY_AREA_OFFSET
@@ -46,13 +49,6 @@ from .program_file import ProgramFile
 from .program_file import ProgramFileAdapter
 from .sample_file import SampleFile
 from .sample_file import SampleFileListAdapter
-from structural import T_ROUTINE
-from structural import Traversable
-from util.constructs import ElementAdapter
-from util.constructs import pass_expression_deeper
-from util.constructs import SafeListConstruct
-from util.constructs import UnsizedConstruct
-from util.dataclass import get_common_field_args
 
 
 @dataclass

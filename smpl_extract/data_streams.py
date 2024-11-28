@@ -1,11 +1,8 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from dataclasses import dataclass
 import enum
 from io import IOBase
 import numpy as np
+import sys
 from typing import cast
 from typing import Dict
 

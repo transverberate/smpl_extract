@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from dataclasses import dataclass
 from io import IOBase
 from typing import List, cast
@@ -12,6 +7,15 @@ from construct.core import Int16ul
 from construct.core import Padding
 from construct.core import Struct
 from construct.core import Union
+
+from smpl_extract.util.fat import FileAllocationTable
+from smpl_extract.util.fat import FileStream
+from smpl_extract.util.fat import SectorLink
+from smpl_extract.util.fat import add_to_sector_links
+from smpl_extract.util.stream import StreamOffset
+from smpl_extract.util.stream import StreamSizeConstruct
+from smpl_extract.util.stream import StreamWrapper
+from smpl_extract.util.stream import SubStreamConstruct
 
 from .data_types import FAT_AREA_ID
 from .data_types import DATA_FAT_OFFSET
@@ -23,14 +27,6 @@ from .data_types import FAT_RESERVED_FLAG
 from .data_types import FAT_VERSION_1_FLAG
 from .data_types import FAT_VERSION_2_FLAG
 from .data_types import ROLAND_CLUSTER_SIZE
-from util.fat import FileAllocationTable
-from util.fat import FileStream
-from util.fat import SectorLink
-from util.fat import add_to_sector_links
-from util.stream import StreamOffset
-from util.stream import StreamSizeConstruct
-from util.stream import StreamWrapper
-from util.stream import SubStreamConstruct
 
 
 FatAreaStruct = Union(

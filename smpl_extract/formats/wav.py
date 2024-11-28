@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct.core import Byte
 from construct.core import Const
 from construct.core import Enum as EnumConstruct 
@@ -24,8 +19,8 @@ from dataclasses import field
 from enum import IntEnum
 from typing import List
 
-from util import bytes2int
-from midi import MidiNote
+from smpl_extract.util import bytes2int
+from smpl_extract.midi import MidiNote
 
 
 class SmpteFormat(IntEnum):

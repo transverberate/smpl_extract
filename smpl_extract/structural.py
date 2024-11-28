@@ -1,9 +1,6 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from abc import ABCMeta
 from abc import abstractmethod
+import os
 import re
 from typing import Any
 from typing import Callable
@@ -16,14 +13,14 @@ from typing import Optional
 from typing import Tuple
 from typing import TypeVar
 
-from base import Element
-from base import ElementTypes
-from base import Printable
-from elements import LeafElement
-from generalized.sample import combine_stereo
-from generalized.sample import Sample
-from generalized.wav import export_wav
-from info import InfoTable
+from smpl_extract.base import Element
+from smpl_extract.base import ElementTypes
+from smpl_extract.base import Printable
+from smpl_extract.elements import LeafElement
+from smpl_extract.generalized.sample import combine_stereo
+from smpl_extract.generalized.sample import Sample
+from smpl_extract.generalized.wav import export_wav
+from smpl_extract.info import InfoTable
 
 
 class ErrorNoChildWithName(Exception): ...

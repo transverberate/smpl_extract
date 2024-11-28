@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from dataclasses import dataclass
 from dataclasses import field
 from io import IOBase
@@ -12,16 +7,16 @@ from typing import ClassVar
 from typing import List
 from typing import Optional
 
-from base import Element
-from cuesheet import CueSheetFile
-from data_streams import DataStream
-from data_streams import Endianess
-from data_streams import StreamEncoding
-from generalized.sample import ChannelConfig
-from generalized.sample import Sample
-from structural import Image
-from structural import SampleElement
-from util.stream import StreamOffset
+from smpl_extract.base import Element
+from smpl_extract.cuesheet import CueSheetFile
+from smpl_extract.data_streams import DataStream
+from smpl_extract.data_streams import Endianess
+from smpl_extract.data_streams import StreamEncoding
+from smpl_extract.generalized.sample import ChannelConfig
+from smpl_extract.generalized.sample import Sample
+from smpl_extract.structural import Image
+from smpl_extract.structural import SampleElement
+from smpl_extract.util.stream import StreamOffset
 
 
 SAMPLE_WIDTH = 2

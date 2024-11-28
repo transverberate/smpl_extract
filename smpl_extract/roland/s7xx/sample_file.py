@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from construct.core import Adapter
 from construct.core import Pass
 from dataclasses import dataclass
@@ -16,26 +11,27 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 
-from base import Element
-from data_streams import DataStream
-from data_streams import Endianess
-from data_streams import StreamEncoding
+from smpl_extract.base import Element
+from smpl_extract.data_streams import DataStream
+from smpl_extract.data_streams import Endianess
+from smpl_extract.data_streams import StreamEncoding
+from smpl_extract.generalized.sample import ChannelConfig
+from smpl_extract.generalized.sample import LoopRegion
+from smpl_extract.generalized.sample import LoopType
+from smpl_extract.generalized.sample import Sample
+from smpl_extract.structural import SampleElement
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.dataclass import get_common_field_args
+from smpl_extract.util.stream import StreamOffset
+from smpl_extract.util.stream import StreamReversed
+
 from .data_types import RolandLoopMode
 from .data_types import ROLAND_SAMPLE_WIDTH
-from generalized.sample import ChannelConfig
-from generalized.sample import LoopRegion
-from generalized.sample import LoopType
-from generalized.sample import Sample
 from .patch_entry import PatchEntry
 from .sample_entry import SampleEntry
 from .sample_entry import SampleParamCommon
 from .sample_entry import SampleParamOptionsSection
-from structural import SampleElement
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.dataclass import get_common_field_args
-from util.stream import StreamOffset
-from util.stream import StreamReversed
 
 
 class RolandLoopPoints(NamedTuple):

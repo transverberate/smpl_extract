@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from dataclasses import dataclass
 from dataclasses import field
 from typing import List
@@ -20,17 +15,18 @@ from construct.core import Struct
 from construct.expr import len_
 from construct.lib.containers import Container
 
+from smpl_extract.midi import MidiNote
+from smpl_extract.util.constructs import BoolConstruct
+from smpl_extract.util.constructs import MappingDefault
+from smpl_extract.util.constructs import PaddedGeneral
+from smpl_extract.util.constructs import sanitize_container
+from smpl_extract.util.constructs import SlicingGeneral
+from smpl_extract.util.dataclass import get_common_field_args
+
 from .akai_string import AkaiPaddedString
 from .data_types import AkaiLoopType
 from .data_types import AkaiMidiNote
 from .data_types import AkaiTuneCents
-from midi import MidiNote
-from util.constructs import BoolConstruct
-from util.constructs import MappingDefault
-from util.constructs import PaddedGeneral
-from util.constructs import sanitize_container
-from util.constructs import SlicingGeneral
-from util.dataclass import get_common_field_args
 
 
 # Has a *different* mapping than the loop_mode_stored in samples

@@ -1,21 +1,17 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct.core import Adapter
 from io import IOBase
 from typing import List
+
+from smpl_extract.util.fat import add_to_sector_links
+from smpl_extract.util.fat import FileAllocationTable
+from smpl_extract.util.fat import FileStream
+from smpl_extract.util.fat import SectorLink
 
 from .data_types import AKAI_SAT_EOF_FLAG
 from .data_types import AKAI_SAT_FREE_FLAG
 from .data_types import AKAI_SAT_RESERVED_FLAG_STD
 from .data_types import AKAI_SAT_RESERVED_FLAG_V2
 from .data_types import AKAI_SECTOR_SIZE
-from util.fat import add_to_sector_links
-from util.fat import FileAllocationTable
-from util.fat import FileStream
-from util.fat import SectorLink
 
 
 class Segment(FileStream):

@@ -1,14 +1,9 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct.core import Construct
 from construct.core import ExprAdapter
 import enum
 from typing import cast
 
-from midi import MidiNote 
+from smpl_extract.midi import MidiNote 
 
 
 AKAI_SECTOR_SIZE = 0x2000

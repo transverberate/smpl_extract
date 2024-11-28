@@ -1,7 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from dataclasses import dataclass
 from io import StringIO
 from typing import List
@@ -9,8 +5,8 @@ from typing import Mapping
 from typing import Sequence
 from typing import Tuple
 
-from base import Printable
-from util.dataclass import ItemT
+from smpl_extract.base import Printable
+from smpl_extract.util.dataclass import ItemT
 
 
 class InfoTable(Printable):

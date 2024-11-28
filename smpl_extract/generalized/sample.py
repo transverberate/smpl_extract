@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 import copy
 from dataclasses import dataclass
 from dataclasses import field
@@ -14,11 +9,11 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from base import Element
-from base import ElementTypes
-from data_streams import DataStream
-from elements import LeafElement
-from midi import MidiNote
+from smpl_extract.base import Element
+from smpl_extract.base import ElementTypes
+from smpl_extract.data_streams import DataStream
+from smpl_extract.elements import LeafElement
+from smpl_extract.midi import MidiNote
 
 
 class ChannelConfig(enum.IntEnum):

@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from collections import namedtuple
 from construct.core import Adapter
 from construct.core import Array
@@ -27,7 +22,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Type
 
-from base import Element
+from smpl_extract.base import Element
 
 
 def sanitize_container(container: Container)->Dict[str, Any]:
