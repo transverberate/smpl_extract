@@ -1,26 +1,21 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct import Adapter
 from construct import Container
 from typing import  Tuple
 
-from data_streams import Endianess
-from data_streams import NoDataStream
-from data_streams import StreamEncoding
-from formats.wav import RiffStruct
-from formats.wav import SmpteFormat
-from formats.wav import WavFormatChunkContainer
-from formats.wav import WavLoopContainer
-from formats.wav import WavLoopType
-from formats.wav import WavRiffChunkType
-from formats.wav import WavSampleChunkContainer
-from generalized.sample import LoopType
-from generalized.sample import Sample
-from midi import MidiNote
-from transcoder import make_transcoder
+from smpl_extract.data_streams import Endianess
+from smpl_extract.data_streams import NoDataStream
+from smpl_extract.data_streams import StreamEncoding
+from smpl_extract.formats.wav import RiffStruct
+from smpl_extract.formats.wav import SmpteFormat
+from smpl_extract.formats.wav import WavFormatChunkContainer
+from smpl_extract.formats.wav import WavLoopContainer
+from smpl_extract.formats.wav import WavLoopType
+from smpl_extract.formats.wav import WavRiffChunkType
+from smpl_extract.formats.wav import WavSampleChunkContainer
+from smpl_extract.generalized.sample import LoopType
+from smpl_extract.generalized.sample import Sample
+from smpl_extract.midi import MidiNote
+from smpl_extract.transcoder import make_transcoder
 
 
 def get_fmt_chunk_data(sample: Sample, encoding: StreamEncoding) -> WavFormatChunkContainer:

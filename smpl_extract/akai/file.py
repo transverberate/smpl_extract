@@ -1,11 +1,9 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from construct.core import ConstructError
 from construct.core import Subconstruct
 from construct.core import Switch
 from construct.expr import this
+
+from smpl_extract.util.fat import RequestedInvalidSector
 
 from .data_types import FileType
 from .data_types import InvalidCharacter
@@ -13,7 +11,6 @@ from .data_types import FileType
 from .program import ProgramParser
 from .sample import SampleAdapter
 from .sample import SampleHeaderConstruct
-from util.fat import RequestedInvalidSector
 
 
 FileConstruct = Switch(

@@ -1,10 +1,4 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from dataclasses import dataclass
-import re
 from construct.core import Adapter
 from construct.core import Computed
 from construct.core import ConstructError
@@ -17,6 +11,7 @@ from construct.core import Seek
 from construct.core import Struct
 from io import SEEK_SET
 from io import IOBase
+import re
 from typing import Any
 from typing import Callable
 from typing import ClassVar
@@ -25,17 +20,18 @@ from typing import List
 from typing import Match
 from typing import cast
 
-from base import Element
-from base import ElementTypes
+from smpl_extract.base import Element
+from smpl_extract.base import ElementTypes
+from smpl_extract.structural import Image
+from smpl_extract.structural import T_ROUTINE
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+
 from .data_types import FAT_AREA_OFFSET
 from .data_types import ID_AREA_SIZE
 from .fat import FatArea
 from .fat import FatAreaParser
 from .fat import RolandFileAllocationTable
-from structural import Image
-from structural import T_ROUTINE
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
 from .volume_entry import VolumeEntry
 from .volume_entry import VolumeEntriesList
 

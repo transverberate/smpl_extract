@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from dataclasses import dataclass
 from dataclasses import field
 from io import IOBase
@@ -27,9 +22,19 @@ from typing import List
 from typing import Optional
 from typing import cast
 
-from base import Element
-from base import ElementTypes
-from base import Printable
+from smpl_extract.base import Element
+from smpl_extract.base import ElementTypes
+from smpl_extract.base import Printable
+from smpl_extract.info import InfoTable
+from smpl_extract.midi import MidiNote
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.constructs import MappingDefault
+from smpl_extract.util.constructs import pass_expression_deeper
+from smpl_extract.util.constructs import UnsizedConstruct
+from smpl_extract.util.dataclass import get_common_field_args
+from smpl_extract.util.fat import FatNotPresent
+
 from .data_types import MAX_NUM_SAMPLE
 from .data_types import RolandLoopMode
 from .data_types import RolandSampleMode
@@ -40,15 +45,6 @@ from .data_types import SAMPLE_PARAMETER_ENTRY_SIZE
 from .directory_area import DirectoryEntryContainer
 from .directory_area import DirectoryEntryParser
 from .fat import RolandFileAllocationTable
-from info import InfoTable
-from midi import MidiNote
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.constructs import MappingDefault
-from util.constructs import pass_expression_deeper
-from util.constructs import UnsizedConstruct
-from util.dataclass import get_common_field_args
-from util.fat import FatNotPresent
 
 
 SampleParamLoopPointStruct = Struct(

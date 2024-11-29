@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct.core import Adapter
 from construct.core import Int16ul
 from construct.core import Int32ul
@@ -25,28 +20,29 @@ from typing import Optional
 from typing import Sequence
 from typing import Iterable
 
+from smpl_extract.base import Element
+from smpl_extract.base import ElementTypes
+from smpl_extract.data_streams import DataStream
+from smpl_extract.data_streams import Endianess
+from smpl_extract.data_streams import StreamEncoding
+from smpl_extract.generalized.sample import ChannelConfig
+from smpl_extract.generalized.sample import LoopRegion
+from smpl_extract.generalized.sample import Sample
+from smpl_extract.midi import MidiNote
+from smpl_extract.structural import SampleElement
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.constructs import EnumWrapper
+from smpl_extract.util.stream import StreamOffset
+from smpl_extract.util.stream import SubStreamConstruct
+
 from .akai_string import AkaiPaddedString
-from base import Element
-from base import ElementTypes
-from data_streams import DataStream
-from data_streams import Endianess
-from data_streams import StreamEncoding
 from .data_types import AKAI_SAMPLE_WORDLENGTH
 from .data_types import DEFAULT_SAMPLE_RATE
 from .data_types import AkaiLoopType
 from .data_types import AkaiMidiNote
 from .data_types import AkaiTuneCents
 from .data_types import SampleType
-from generalized.sample import ChannelConfig
-from generalized.sample import LoopRegion
-from generalized.sample import Sample
-from midi import MidiNote
-from structural import SampleElement
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.constructs import EnumWrapper
-from util.stream import StreamOffset
-from util.stream import SubStreamConstruct
 
 
 @dataclass

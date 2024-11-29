@@ -25,7 +25,7 @@ from typing import Type
 from typing import TypeVar
 from typing import Union
 
-from base import Element
+from smpl_extract.base import Element
 
 
 def sanitize_container(container: Container)->Dict[str, Any]:

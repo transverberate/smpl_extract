@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from typing import Any
 from typing import Callable
 from typing import ClassVar
@@ -22,20 +17,21 @@ from construct.core import Computed
 from construct.core import Tell
 from construct.expr import this
 
-from base import Element
+from smpl_extract.base import Element
+from smpl_extract.structural import T_ROUTINE
+from smpl_extract.structural import Traversable
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.stream import StreamOffset
+from smpl_extract.util.stream import SubStreamConstruct
+
 from .data_types import AKAI_PARTITION_MAGIC
-from .data_types import  AKAI_SAT_ENTRY_CNT
+from .data_types import AKAI_SAT_ENTRY_CNT
 from .data_types import AKAI_SECTOR_SIZE
 from .data_types import AKAI_VOLUME_ENTRY_CNT
 from .data_types import InvalidCharacter
 from .sat import SegmentAllocationTable
 from .sat import SegmentAllocationTableAdapter
-from structural import T_ROUTINE
-from structural import Traversable
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.stream import StreamOffset
-from util.stream import SubStreamConstruct
 from .volume import Volume
 from .volume import VolumeEntryConstruct
 from .volume import VolumesAdapter

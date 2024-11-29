@@ -1,7 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from io import BytesIO
 from typing import Iterable
 from typing import Union
@@ -223,7 +219,7 @@ class TranscoderTest(unittest.TestCase):
 
     # Bad args for make_transcoder
     def test_no_datastream_raises_error(self):
-        from data_streams import NoDataStream  # type: ignore
+        from smpl_extract.data_streams import NoDataStream  # type: ignore
         self.assertRaises(NoDataStream, make_transcoder, [], StreamEncoding())
 
 
@@ -239,7 +235,7 @@ class TranscoderTest(unittest.TestCase):
             BytesIO(byte_buffer_2),
             StreamEncoding(sample_width=2)
         )
-        from data_streams import IncompatibleNumberOfChannels  # type: ignore
+        from smpl_extract.data_streams import IncompatibleNumberOfChannels  # type: ignore
         self.assertRaises(
             IncompatibleNumberOfChannels, 
             make_transcoder, 

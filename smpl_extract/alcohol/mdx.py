@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct.core import Bytes
 from construct.core import ConstructError
 from construct.core import Const
@@ -15,7 +10,7 @@ from construct.expr import obj_
 from io import IOBase
 from io import SEEK_SET
 
-from util.stream import StreamOffset
+from smpl_extract.util.stream import StreamOffset
 
 
 MDX_SECTOR_HEADER_MAGIC = (

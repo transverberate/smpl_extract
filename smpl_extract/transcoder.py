@@ -1,19 +1,15 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from dataclasses import dataclass
 import numpy as np
 from typing import Callable
 from typing import List
 from typing import Tuple
 
-from data_streams import DataStream
-from data_streams import NoDataStream
-from data_streams import IncompatibleNumberOfChannels
-from data_streams import StreamEncoding
-from data_streams import system_byte_order
-from util.stream import SectorReadError
+from smpl_extract.data_streams import DataStream
+from smpl_extract.data_streams import NoDataStream
+from smpl_extract.data_streams import IncompatibleNumberOfChannels
+from smpl_extract.data_streams import StreamEncoding
+from smpl_extract.data_streams import system_byte_order
+from smpl_extract.util.stream import SectorReadError
 
 
 _DEFAULT_BUFFER_SIZE = 0x1000

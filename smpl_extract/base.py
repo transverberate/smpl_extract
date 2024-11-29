@@ -1,7 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from abc import ABCMeta
 from abc import abstractmethod
 import enum

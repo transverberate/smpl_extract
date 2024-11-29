@@ -1,30 +1,27 @@
 
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from functools import wraps
 from io import BufferedReader
+import os
 from typing import Callable
 from typing import Dict 
 from typing import List
 from typing import Union
 
-from akai.image import AkaiImageParser
-from alcohol.mdf import is_mdf_image
-from alcohol.mdf import MdfStream
-from alcohol.mdx import is_mdx_image
-from alcohol.mdx import MdxStream
-from cdda.image import CompactDiskAudioImageAdapter
-from cuesheet import BadCueSheet
-from cuesheet import parse_cue_sheet
-from roland.s7xx.image import RolandSxxImageParser
-from roland.s7xx.image import is_roland_s7xx_image
-from structural import ErrorInvalidPath
-from structural import ExportManager
-from structural import Image
-from structural import T_ROUTINE
-from structural import T_SAMPLE_ROUTINE
+from smpl_extract.akai.image import AkaiImageParser
+from smpl_extract.alcohol.mdf import is_mdf_image
+from smpl_extract.alcohol.mdf import MdfStream
+from smpl_extract.alcohol.mdx import is_mdx_image
+from smpl_extract.alcohol.mdx import MdxStream
+from smpl_extract.cdda.image import CompactDiskAudioImageAdapter
+from smpl_extract.cuesheet import BadCueSheet
+from smpl_extract.cuesheet import parse_cue_sheet
+from smpl_extract.roland.s7xx.image import RolandSxxImageParser
+from smpl_extract.roland.s7xx.image import is_roland_s7xx_image
+from smpl_extract.structural import ErrorInvalidPath
+from smpl_extract.structural import ExportManager
+from smpl_extract.structural import Image
+from smpl_extract.structural import T_ROUTINE
+from smpl_extract.structural import T_SAMPLE_ROUTINE
 
 
 class BadTextFile(Exception): pass

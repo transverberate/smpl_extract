@@ -1,7 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from construct.core import Computed
 from construct.core import ConstructError
 from construct.core import Lazy
@@ -23,16 +19,16 @@ from typing import Iterable
 from typing import List
 from typing import Union
 
+from smpl_extract.util.fat import RequestedInvalidSector
+from smpl_extract.util.stream import StreamWrapper
+from smpl_extract.util.constructs import EnumWrapper
+from smpl_extract.util.constructs import pull_child_info
+
 from .akai_string import AkaiPaddedString
-from base import Element
 from .data_types import FILE_TABLE_END_FLAG
 from .data_types import FileType
 from .file import FileAdapter
 from .file import FileConstruct
-from util.fat import RequestedInvalidSector
-from util.stream import StreamWrapper
-from util.constructs import EnumWrapper
-from util.constructs import pull_child_info
 
 
 class InvalidFileEntry(Exception):

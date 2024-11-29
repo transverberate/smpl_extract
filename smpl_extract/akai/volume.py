@@ -1,7 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from dataclasses import dataclass
 from typing import Any
 from typing import Dict
@@ -15,18 +11,19 @@ from construct.core import Struct
 from construct.lib.containers import Container
 from construct.expr import this
 
+from smpl_extract.base import Element
+from smpl_extract.structural import T_ROUTINE
+from smpl_extract.structural import Traversable
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.constructs import EnumWrapper
+
 from .akai_string import AkaiPaddedString
-from base import Element
 from .data_types import VolumeType
 from .file_entry import FileEntriesAdapter
 from .file_entry import FileEntryConstruct
 from .file_entry import InvalidFileEntry
 from .file_entry import FileEntry
-from structural import T_ROUTINE
-from structural import Traversable
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.constructs import EnumWrapper
 
 
 class Volume(Traversable):

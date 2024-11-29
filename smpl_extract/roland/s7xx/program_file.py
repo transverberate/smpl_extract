@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, "../.."))
-
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any
@@ -12,15 +7,16 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from base import Element
+from smpl_extract.base import Element
+from smpl_extract.structural import ProgramElement
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.dataclass import get_common_field_args
+
 from .partial_entry import PartialParamCommon
 from .partial_entry import PartialParamSampleSectionCommon
 from .patch_entry import PatchEntry
 from .patch_entry import PatchParamEntryCommon
-from structural import ProgramElement
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.dataclass import get_common_field_args
 
 
 @dataclass

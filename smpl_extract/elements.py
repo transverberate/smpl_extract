@@ -1,18 +1,14 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-
 from dataclasses import dataclass
 from dataclasses import fields
 from typing import ClassVar
 from typing import List
 from typing import Optional
 
-from base import Element
-from info import InfoTree
-from info import Printable
-from util.dataclass import itemize_general
-from util.dataclass import ItemT
+from smpl_extract.base import Element
+from smpl_extract.info import InfoTree
+from smpl_extract.info import Printable
+from smpl_extract.util.dataclass import itemize_general
+from smpl_extract.util.dataclass import ItemT
 
 
 @dataclass

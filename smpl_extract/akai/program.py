@@ -1,8 +1,3 @@
-import os, sys
-_SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(_SCRIPT_PATH, "."))
-sys.path.append(os.path.join(_SCRIPT_PATH, ".."))
-
 from construct.core import Computed
 from construct.core import Default
 from construct.core import ExprSymmetricAdapter
@@ -24,8 +19,17 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 
+from smpl_extract.base import Element
+from smpl_extract.midi import MidiNote
+from smpl_extract.structural import ProgramElement
+from smpl_extract.util.constructs import BoolConstruct
+from smpl_extract.util.constructs import ChildInfo
+from smpl_extract.util.constructs import ElementAdapter
+from smpl_extract.util.constructs import EnumWrapper
+from smpl_extract.util.constructs import MappingDefault
+from smpl_extract.util.dataclass import get_common_field_args
+
 from .akai_string import AkaiPaddedString
-from base import Element
 from .data_types import AkaiAuxOutput
 from .data_types import AkaiMidiNote
 from .data_types import AkaiMidiOutput
@@ -35,14 +39,6 @@ from .data_types import AkaiProgramPriority
 from .keygroup import Keygroup
 from .keygroup import KeygroupAdapter
 from .keygroup import KeygroupConstruct
-from midi import MidiNote
-from structural import ProgramElement
-from util.constructs import BoolConstruct
-from util.constructs import ChildInfo
-from util.constructs import ElementAdapter
-from util.constructs import EnumWrapper
-from util.constructs import MappingDefault
-from util.dataclass import get_common_field_args
 
 
 @dataclass
