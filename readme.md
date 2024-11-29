@@ -55,6 +55,14 @@ if none are found on your system.
 The [GNU Compiler Collection (GCC)](https://gcc.gnu.org/) is generally a good choice for an 
 out-of-the-box `c compiler`.
 
+Next, enter the command the command
+
+```
+python -m pip install numpy
+```
+
+to install numpy to your python package library.
+
 Next, enter the command (note the period!),
 
 ```
