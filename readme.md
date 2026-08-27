@@ -22,7 +22,20 @@ Accepts `.iso`, `.bin`/`.cue`, `.mdf`/`.mds`, or raw disc image to produce `.wav
 
 
 ## Installation
-### Prerequisites
+
+### From PyPI (recommended)
+ 
+```
+pip install smpl-extract
+```
+ 
+Confirm it installed correctly:
+ 
+```
+python -m smpl_extract --help
+```
+
+### From Source
 This toolset requires [Python 3](https://www.python.org/download/releases/3.0/)
 to be installed and added to the user's `PATH`. 
 Often times, installing python will not automatically add these programs to the system `PATH`. 
@@ -34,7 +47,6 @@ type `python --version` (sometimes it will be installed as `python3`, in which c
 every time `python` is encountered in this document, it should be replaced with python3). 
 If present, python should respond with its version number.
 
-### Installing
 Download the contents of this repo and extract them to a convenient place on your machine. 
 Open an instance of command prompt and navigate to the location you extracted the repo. 
 You should now be in the folder with `setup.py` and the sample `smpl_extract` directory. 
