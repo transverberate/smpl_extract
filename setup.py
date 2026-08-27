@@ -29,8 +29,8 @@ setup(
         "construct"
     ],
     setup_requires=[
-        "setuptools>=18.0",
-        "cython",
+        "setuptools>=61.0",
+        "cython>=3.0.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

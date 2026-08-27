@@ -1,7 +1,7 @@
 # smpl_extract
 
-A python library/tool for extracting patches and samples from various 
-sampler/audio disc image formats.
+A Python library and command-line tool for **extracting samples and audio tracks from vintage/90s sampler and sample-CD disc images** – including AKAI S1000/S3000, Roland S-7xx, and CDDA formats. 
+Accepts `.iso`, `.bin`/`.cue`, `.mdf`/`.mds`, or raw disc image to produce `.wav` files for each sample detected.
 
 ## Supported Formats
 ### Source Types
@@ -584,13 +584,6 @@ contain the *left* and *right* channel data.
 This tool-set is in active development and has only been rigorously tested in Windows 10. 
 If a bug is found, please report it as an issue. Feature requests are welcome, but there is no 
 guarantee I will be able to implement it.
-
-## Support Me
-`smpl_extract` is an open-source alternative for extracting audio samples from disc images.
-If you like the work I've contributed to this project, you can support me by buying me a coffee!
-
-
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/counselor.chip)
 
 ## License
 Copyright (c) 2021-present Counselor Chip.
