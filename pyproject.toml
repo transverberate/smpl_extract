@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "smpl-extract"
 version = "0.2.0"
-description = "Extract samples and patches from AKAI, Roland S-7xx, and CDDA sampler/audio disc images."
+description = "Extract samples and tracks from AKAI, Roland S-7xx, and CDDA sampler/audio disc images."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
