@@ -11,3 +11,5 @@ smpl_extract/**/*.html
 build/
 .eggs/
 .venv/
+.venv13/
+dist/

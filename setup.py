@@ -3,7 +3,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 
-version = "0.2.0"
+version = "0.3.0"
 # cython accelerated filters
 extensions = [
     Extension(
@@ -21,7 +21,7 @@ setup(
     name="smpl_extract",
     packages=find_packages("."),
     version=version,
-    description="A python library/tool for extracting patches and samples from various sampler/audio disc image formats.",
+    description="Extract samples and tracks from AKAI, Roland S-7xx, and CDDA sampler/audio disc images.",
     author="Counselor Chip",
     install_requires=[
         "future", 
